@@ -22,36 +22,48 @@ const (
 	trafficLightsWidth float32 = 84
 )
 
-// sidebarFoldTime is how long the sidebar takes to fold away or to come back.
-const sidebarFoldTime = 220 * time.Millisecond
+// sidebarFoldTime is how long the sidebar takes to fold away or to come back,
+// and sidebarSectionTime how long a section's items take to fold under their
+// title.
+const (
+	sidebarFoldTime    = 220 * time.Millisecond
+	sidebarSectionTime = 180 * time.Millisecond
+)
 
 var (
 	iconWorkspace    = sidebarIcon(`<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>`)
 	iconNewWorkspace = sidebarIcon(`<path d="M12 5v14M5 12h14"/>`)
 	iconHome         = sidebarIcon(`<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>`)
 	iconFolder       = sidebarIcon(`<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>`)
-	iconCloud        = sidebarIcon(`<path d="M17.5 19a4.5 4.5 0 0 0 .5-9 6 6 0 0 0-11.6 1.6A3.5 3.5 0 0 0 6.5 19z"/>`)
-	iconDrive        = sidebarIcon(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15h18"/><path d="M7 18h.01M11 18h.01"/>`)
-	iconChevron      = sidebarIcon(`<path d="m9 6 6 6-6 6"/>`)
-	iconSidebar      = sidebarIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16"/><path d="M5.5 8.5h1.75M5.5 12h1.75M5.5 15.5h1.75"/>`)
+	// iconFavorite is a folder with a star in it, which tells the favorites from
+	// the recents' plain folders at a glance.
+	iconFavorite = sidebarIcon(`<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path fill="currentColor" stroke="none" d="M12 8.1 13.03 10.98 16.09 11.07 13.66 12.94 14.53 15.88 12 14.15 9.47 15.88 10.34 12.94 7.91 11.07 10.97 10.98Z"/>`)
+	iconCloud    = sidebarIcon(`<path d="M17.5 19a4.5 4.5 0 0 0 .5-9 6 6 0 0 0-11.6 1.6A3.5 3.5 0 0 0 6.5 19z"/>`)
+	iconDrive    = sidebarIcon(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15h18"/><path d="M7 18h.01M11 18h.01"/>`)
+	iconChevron  = sidebarIcon(`<path d="m9 6 6 6-6 6"/>`)
+	iconSidebar  = sidebarIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16"/><path d="M5.5 8.5h1.75M5.5 12h1.75M5.5 15.5h1.75"/>`)
 )
 
-// sidebarIcon draws an icon of the sidebar, its shapes filling their box so
-// they read as large as the file lists' icons beside them: the artwork is drawn
-// in a 24 DIP box, which the view box trims to show it a fifth larger.
+// sidebarIcon draws an icon of the sidebar: the artwork is drawn in a 24 DIP
+// box, which the view box trims a little, so its shapes fill their box without
+// the weight of the file lists' icons beside them.
 func sidebarIcon(shapes string) *ui.SVG {
-	return ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.9 1.9 20.2 20.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">` + shapes + `</svg>`))
+	return ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">` + shapes + `</svg>`))
 }
 
-// sidebarItemFont is the font of the sidebar's items, which list the same
-// folders as the file rows beside them and read as large: the file lists'
-// font, so that changing it changes the sidebar too.
-func (a *app) sidebarItemFont() fontSetting { return a.fonts.Files }
+// sidebarItemFont is the font of the sidebar's items: the file lists' font, a
+// step smaller, so that the sidebar reads as a band of its own beside the panes
+// and follows the File font setting with them.
+func (a *app) sidebarItemFont() fontSetting {
+	f := a.fonts.Files
+	f.Size--
+	return f
+}
 
 // sidebarTitleFont is the font of a section's title, a step under the items'.
 func (a *app) sidebarTitleFont() fontSetting {
 	f := a.fonts.Files
-	f.Size--
+	f.Size -= 2
 	return f
 }
 
@@ -125,9 +137,6 @@ func (a *app) sidebarView(c *ui.Context) {
 			ui.Box(c).Height(titleStripHeight(c)).Grow(1).DragWindow()
 			a.sidebarToggle(c, "Hide Sidebar")
 		})
-		title := a.fonts.Files
-		title.Size += 3
-		title.apply(ui.Text(c, "Twintrail")).Bold().Padding(10, 12).TextColor(theme.Text)
 		sidebar := ui.Sidebar(c, &a.sidebarSelection, func() {
 			// The Workspaces header carries a + of its own, so it is a row
 			// rather than a SidebarSection, whose header has no room for
@@ -140,7 +149,11 @@ func (a *app) sidebarView(c *ui.Context) {
 			})
 			for i := range a.workspaces {
 				id := workspaceItemID(i)
-				a.sidebarItemFont().apply(ui.SidebarItem(c, id, iconWorkspace, a.workspaces[i].Name)).OnClick(func() { a.chooseSidebarItem(id) }).ContextMenu(func(m *ui.Menu) {
+				item := a.sidebarItemFont().apply(ui.SidebarItem(c, id, iconWorkspace, a.workspaces[i].Name))
+				if h := item.Bounds().H; h > 0 {
+					a.sidebarItemHeight = h
+				}
+				item.OnClick(func() { a.chooseSidebarItem(id) }).ContextMenu(func(m *ui.Menu) {
 					if m.Item("Rename Workspace…").Chosen() {
 						a.deferAction(c, func() { a.renameWorkspace(i) })
 					}
@@ -149,7 +162,7 @@ func (a *app) sidebarView(c *ui.Context) {
 					}
 				})
 			}
-			a.sidebarSection(c, "Favorites", &a.favoritesOpen, func() {
+			a.sidebarSection(c, "Favorites", &a.favoritesFold, len(a.favorites), func() {
 				for _, item := range a.favorites {
 					item := item
 					a.sidebarItemFont().apply(ui.SidebarItem(c, "favorite:"+item.Path, favoriteIcon(item), item.Name)).OnClick(func() { a.navigateTo(item.Path) }).ContextMenu(func(m *ui.Menu) {
@@ -160,7 +173,7 @@ func (a *app) sidebarView(c *ui.Context) {
 				}
 			})
 			if len(a.recents) > 0 {
-				a.sidebarSection(c, "Recents", &a.recentsOpen, func() {
+				a.sidebarSection(c, "Recents", &a.recentsFold, len(a.recents), func() {
 					for _, path := range a.recents {
 						path := path
 						a.sidebarItemFont().apply(ui.SidebarItem(c, "recent:"+path, iconFolder, displayName(path))).OnClick(func() { a.navigateTo(path) }).ContextMenu(func(m *ui.Menu) {
@@ -172,7 +185,7 @@ func (a *app) sidebarView(c *ui.Context) {
 				})
 			}
 			if len(a.locations) > 0 {
-				a.sidebarSection(c, "Locations", &a.locationsOpen, func() {
+				a.sidebarSection(c, "Locations", &a.locationsFold, len(a.locations), func() {
 					for _, item := range a.locations {
 						item := item
 						a.sidebarItemFont().apply(ui.SidebarItem(c, "location:"+item.Path, locationIcon(item), item.Name)).OnClick(func() { a.navigateTo(item.Path) })
@@ -184,21 +197,52 @@ func (a *app) sidebarView(c *ui.Context) {
 	})
 }
 
+// sectionFold is how far a section of the sidebar has folded its items away:
+// whether they show, how far they have gone over a moment, and the height they
+// take when they show, which the last frame that laid them out measured.
+type sectionFold struct {
+	open   bool
+	folded float32
+	height float32
+}
+
+// animate moves the fold to where the section's open state asks, over a
+// moment: e is an element of the frame, whose state keeps the value.
+func (f *sectionFold) animate(e ui.Element) {
+	target := float32(0)
+	if !f.open {
+		target = 1
+	}
+	if f.folded == target {
+		e.Jump("fold", target)
+		return
+	}
+	f.folded = e.AnimateTo("fold", target, ui.Animation{Duration: sidebarSectionTime, Ease: ui.EaseInOut})
+	if d := f.folded - target; d > -0.01 && d < 0.01 {
+		f.folded = target
+	}
+}
+
 // sidebarSection builds a section of the sidebar whose header always shows a
 // button at its right, which shows and hides the section's items and points
 // down while they show. A framework SidebarSection shows its arrow only while
 // the pointer rests on the title, so a section the user collapsed would look
 // like an empty one. A click on the title shows and hides the items too.
-func (a *app) sidebarSection(c *ui.Context, title string, open *bool, items func()) {
+//
+// The items fold away under the title over a moment, and unfold from it: the
+// box that holds them takes the height they still take, and they fade as they
+// go, while the sections under them slide up to where the title leaves them.
+func (a *app) sidebarSection(c *ui.Context, title string, fold *sectionFold, count int, items func()) {
 	theme := c.Theme()
-	toggle := func() { *open = !*open }
+	toggle := func() { fold.open = !fold.open }
 	ui.Column(c).Gap(theme.Space(0.5)).Shrink(0).Margin(theme.Space(3), 0, 0, 0).Children(func() {
 		head := ui.Row(c).AlignItems(ui.Center).Padding(theme.Space(1), theme.Space(2)).Radius(theme.Radius)
+		fold.animate(head)
 		head.OnClick(toggle).Children(func() {
 			a.sidebarTitleFont().apply(ui.Text(c, title)).FontWeight(600).TextColor(theme.TextMuted).Grow(1)
 			action := "Collapse " + title
 			turn := float32(90)
-			if !*open {
+			if !fold.open {
 				action, turn = "Expand "+title, 0
 			}
 			button := ui.ButtonBase(c).Label(action).Tooltip(action).Padding(theme.Space(1)).Radius(theme.Radius)
@@ -207,17 +251,47 @@ func (a *app) sidebarSection(c *ui.Context, title string, open *bool, items func
 				ui.Icon(c, iconChevron).Size(12, 12).TextColor(theme.TextMuted).Rotate(turn)
 			}).OnClick(toggle)
 		})
-		if *open {
-			items()
+		// Their box shows while the section is open, and while it folds away.
+		// A section that starts folded has no height laid out yet: the items it
+		// would hold take the height of one item, which the workspaces show.
+		if fold.height <= 0 {
+			fold.height = float32(count)*tallestItemHeight(a) + float32(max(count-1, 0))*theme.Space(0.5)
+		}
+		if fold.open || fold.folded < 0.99 {
+			box := ui.Column(c).Clip().Shrink(0)
+			// They take the height they still take, once theirs is known: while
+			// they show whole, the layout gives them theirs to measure.
+			if fold.height > 0 && fold.folded > 0 {
+				box.Height(fold.height * (1 - fold.folded))
+			}
+			box.Children(func() {
+				inner := ui.Column(c).Gap(theme.Space(0.5)).Shrink(0).Opacity(1 - fold.folded)
+				inner.Children(items)
+				// Their own height, which the box does not take from them.
+				if fold.folded == 0 {
+					if h := inner.Bounds().H; h > 0 {
+						fold.height = h
+					}
+				}
+			})
 		}
 	})
+}
+
+// tallestItemHeight is the height an item of the sidebar takes, as the last
+// frame laid one out, or a guess before it laid any.
+func tallestItemHeight(a *app) float32 {
+	if a.sidebarItemHeight > 0 {
+		return a.sidebarItemHeight
+	}
+	return float32(a.fonts.Files.Size)*1.4 + 2*3
 }
 
 func favoriteIcon(item savedLocation) *ui.SVG {
 	if item.Name == "Home" {
 		return iconHome
 	}
-	return iconFolder
+	return iconFavorite
 }
 
 func locationIcon(item savedLocation) *ui.SVG {

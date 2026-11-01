@@ -93,8 +93,13 @@ func (a *app) restore() {
 	if s.FavoritesSet || len(s.Favorites) > 0 {
 		a.favorites = existingLocations(s.Favorites)
 	}
-	a.favoritesOpen, a.recentsOpen = !s.FavoritesCollapsed, !s.RecentsCollapsed
-	a.locationsOpen = !s.LocationsCollapsed
+	a.favoritesFold.open, a.recentsFold.open = !s.FavoritesCollapsed, !s.RecentsCollapsed
+	a.locationsFold.open = !s.LocationsCollapsed
+	for _, fold := range []*sectionFold{&a.favoritesFold, &a.recentsFold, &a.locationsFold} {
+		if !fold.open {
+			fold.folded = 1
+		}
+	}
 	a.recents = existingPaths(s.Recents)
 	if len(s.Workspaces) > 0 {
 		a.workspaces = append([]workspaceLayout(nil), s.Workspaces...)
@@ -121,8 +126,8 @@ func (a *app) snapshotSession() session {
 		Panes: panes, Active: active, Split: split, Width: a.lastWidth, SidebarWidth: a.sidebarWidth,
 		SidebarHidden: a.sidebarHidden, Light: a.light, Fonts: a.fonts,
 		Workspaces: workspaces, Workspace: a.workspaceIndex, Recents: a.recents, Favorites: a.favorites,
-		FavoritesSet: true, FavoritesCollapsed: !a.favoritesOpen, RecentsCollapsed: !a.recentsOpen,
-		LocationsCollapsed: !a.locationsOpen,
+		FavoritesSet: true, FavoritesCollapsed: !a.favoritesFold.open, RecentsCollapsed: !a.recentsFold.open,
+		LocationsCollapsed: !a.locationsFold.open,
 	}
 }
 func saveSession(s session) {

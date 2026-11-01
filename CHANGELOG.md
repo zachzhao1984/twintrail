@@ -10,16 +10,21 @@
 
 - The sidebar's right edge drags to resize it, as the line between the panes
   does; it keeps a readable width, and the app remembers it.
-- The sidebar's items read at the size of the file rows beside them, and follow
-  the File font setting; the icons of the sidebar fill their box likewise, a
-  step larger than before.
+- The favorites draw their folders with a star in them, which tells them from
+  the recents' plain folders at a glance.
+- The sidebar's items read a step under the file rows beside them, and follow
+  the File font setting; the icons of the sidebar fill their box without the
+  weight of the file lists' icons.
 - A button at the top of the sidebar, drawn as a sidebar, folds it away over a
   moment: its items slide out from under the panes while their room grows, and
   the button in their strip brings it back at the width it had. The window
   opens as it was left.
 - Favorites, Recents and Locations carry a button at the right of their
   headers that shows and hides their items, turning as it does; a click on
-  the header does the same, and a collapsed section stays collapsed.
+  the header does the same. The items fold away under the title over a moment,
+  fading as the sections below slide up, and a collapsed section stays
+  collapsed. The app's name no longer heads the sidebar: the sections start
+  under the buttons that fold the whole sidebar away.
 - A Finder-style sidebar with Workspaces, Favorites, Recents and system
   Locations. Workspaces remember the tabs in both panes, the current tab, the
   active pane and the split position; the **+** beside the Workspaces header

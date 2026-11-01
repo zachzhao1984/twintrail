@@ -39,7 +39,8 @@ A Finder-style sidebar sits to the left of the panes, in the manner of Tilde:
   brings it back.
 - **Recents** keeps the last eight folders visited in either pane, newest
   first. The button at the right of the Favorites, Recents and Locations
-  headers, or a click on the header itself, shows and hides its items.
+  headers, or a click on the header itself, folds its items away over a
+  moment and back.
 - **Locations** lists iCloud Drive when present, the home folder and the
   mounted volumes.
 

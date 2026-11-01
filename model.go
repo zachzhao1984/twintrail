@@ -87,10 +87,11 @@ type app struct {
 	sidebarSelection     string
 	recents              []string
 	favorites            []savedLocation
-	favoritesOpen        bool
+	favoritesFold        sectionFold
+	sidebarItemHeight    float32
 	locations            []savedLocation
-	locationsOpen        bool
-	recentsOpen          bool
+	locationsFold        sectionFold
+	recentsFold          sectionFold
 	pending              []func()
 }
 
@@ -104,10 +105,10 @@ func newApp(left, right string) *app {
 	a.workspaceIndex = 0
 	a.sidebarSelection = workspaceItemID(0)
 	a.favorites = defaultFavorites()
-	a.favoritesOpen = true
+	a.favoritesFold.open = true
 	a.locations = systemLocations()
-	a.locationsOpen = true
-	a.recentsOpen = true
+	a.locationsFold.open = true
+	a.recentsFold.open = true
 	return a
 }
 func (a *app) current() *tab { p := &a.panes[a.active]; return p.tabs[p.current] }

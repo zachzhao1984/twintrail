@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -383,8 +382,8 @@ func TestSidebarWidthSaved(t *testing.T) {
 }
 
 // TestSidebarSectionsCollapse checks the button at the right of the Favorites,
-// Recents and Locations headers hides and shows their items, as does a click on
-// the title, and that a collapsed section comes back collapsed.
+// Recents and Locations headers hides and shows their items over a moment, as
+// does a click on the title, and that a collapsed section comes back collapsed.
 func TestSidebarSectionsCollapse(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -398,34 +397,48 @@ func TestSidebarSectionsCollapse(t *testing.T) {
 	a.favorites = []savedLocation{{Name: "Marked", Path: dir}}
 	a.locations = []savedLocation{{Name: "Mounted Disk", Path: dir}}
 	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	// The items fold away over a moment rather than at once.
+	settle := func() {
+		tt.Advance(sidebarSectionTime * 2)
+		tt.Frame()
+	}
 	if err := tt.Click("Collapse Favorites"); err != nil {
 		t.Fatalf("%v (labels %v)", err, tt.Texts())
 	}
 	tt.Frame()
-	if a.favoritesOpen || !tt.HasText("Favorites") || tt.HasText("Marked") {
-		t.Fatalf("favorites not collapsed: open=%v texts=%v", a.favoritesOpen, tt.Texts())
+	tt.Advance(sidebarSectionTime / 2)
+	if fold := a.favoritesFold.folded; fold <= 0 || fold >= 1 {
+		t.Fatalf("favorites folded %v halfway, want a fold on its way", fold)
+	}
+	settle()
+	if a.favoritesFold.open || !tt.HasText("Favorites") || tt.HasText("Marked") {
+		t.Fatalf("favorites not collapsed: open=%v texts=%v", a.favoritesFold.open, tt.Texts())
 	}
 	if err := tt.Click("Expand Favorites"); err != nil {
 		t.Fatalf("%v (labels %v)", err, tt.Texts())
 	}
 	tt.Frame()
-	if !a.favoritesOpen || !tt.HasText("Marked") {
-		t.Fatalf("favorites not shown: open=%v texts=%v", a.favoritesOpen, tt.Texts())
+	settle()
+	if !a.favoritesFold.open || a.favoritesFold.folded != 0 || !tt.HasText("Marked") {
+		t.Fatalf("favorites not shown: fold=%+v texts=%v", a.favoritesFold, tt.Texts())
 	}
 	// A click on the header's title does the same, as a framework section's.
 	if err := tt.Click("Recents"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.recentsOpen || tt.HasText("Recent Folder") {
-		t.Fatalf("recents not collapsed: open=%v texts=%v", a.recentsOpen, tt.Texts())
+	settle()
+	if a.recentsFold.open || tt.HasText("Recent Folder") {
+		t.Fatalf("recents not collapsed: open=%v texts=%v", a.recentsFold.open, tt.Texts())
 	}
 	if err := tt.Click("Collapse Locations"); err != nil {
 		t.Fatalf("%v (labels %v)", err, tt.Texts())
 	}
 	tt.Frame()
-	if a.locationsOpen || !tt.HasText("Locations") || tt.HasText("Mounted Disk") {
-		t.Fatalf("locations not collapsed: open=%v texts=%v", a.locationsOpen, tt.Texts())
+	settle()
+	if a.locationsFold.open || !tt.HasText("Locations") || tt.HasText("Mounted Disk") {
+		t.Fatalf("locations not collapsed: open=%v texts=%v", a.locationsFold.open, tt.Texts())
 	}
 	// The collapsed sections are remembered.
 	data, err := json.Marshal(a.snapshotSession())
@@ -441,9 +454,24 @@ func TestSidebarSectionsCollapse(t *testing.T) {
 	}
 	b := newApp(dir, dir)
 	b.restore()
-	if b.recentsOpen || !b.favoritesOpen || b.locationsOpen {
+	if b.recentsFold.open || !b.favoritesFold.open || b.locationsFold.open {
 		t.Fatalf("sections restored open=%v/%v/%v, want false/true/false",
-			b.favoritesOpen, b.recentsOpen, b.locationsOpen)
+			b.favoritesFold.open, b.recentsFold.open, b.locationsFold.open)
+	}
+	if b.recentsFold.folded != 1 || b.locationsFold.folded != 1 || b.favoritesFold.folded != 0 {
+		t.Fatalf("sections restored folded=%v/%v/%v",
+			b.favoritesFold.folded, b.recentsFold.folded, b.locationsFold.folded)
+	}
+	// One that came back folded folds open over a moment too.
+	bt := ui.NewTester(b.view, 1100, 720)
+	bt.Frame()
+	if err := bt.Click("Expand Recents"); err != nil {
+		t.Fatalf("%v (labels %v)", err, bt.Texts())
+	}
+	bt.Frame()
+	bt.Advance(sidebarSectionTime / 2)
+	if fold := b.recentsFold.folded; fold <= 0 || fold >= 1 {
+		t.Fatalf("recents folded %v halfway open, want a fold on its way", fold)
 	}
 }
 
@@ -509,7 +537,7 @@ func TestSidebarHidesAndShows(t *testing.T) {
 	}
 }
 
-// TestSidebarTextMatchesFileRows checks the sidebar's items read at the size of
+// TestSidebarTextFollowsFileRows checks the sidebar's items read a step under
 // the file rows beside them, and follow the File font setting with them.
 func TestSidebarTextMatchesFileRows(t *testing.T) {
 	a := fixture(t)
@@ -524,18 +552,38 @@ func TestSidebarTextMatchesFileRows(t *testing.T) {
 		}
 		return r.H
 	}
-	item := height("Marked")
-	if size := height("5 bytes"); math.Abs(float64(item-size)) > 0.6 {
-		t.Fatalf("sidebar item %.2f high, the file rows' text %.2f", item, size)
+	item, size := height("Marked"), height("5 bytes")
+	if item >= size || size-item > 3 {
+		t.Fatalf("sidebar item %.2f high, the file rows' text %.2f, want a step under it", item, size)
 	}
 	// A larger File font takes the sidebar's items with it.
 	a.fonts.Files.Size += 6
 	tt.Frame()
-	grown := height("Marked")
+	grown, grownSize := height("Marked"), height("5 bytes")
 	if grown <= item {
 		t.Fatalf("sidebar item %.2f high, was %.2f", grown, item)
 	}
-	if size := height("5 bytes"); math.Abs(float64(grown-size)) > 0.6 {
-		t.Fatalf("sidebar item %.2f high, the file rows' text %.2f", grown, size)
+	if grown >= grownSize || grownSize-grown > 3 {
+		t.Fatalf("sidebar item %.2f high, the file rows' text %.2f, want a step under it", grown, grownSize)
+	}
+}
+
+// TestFavoritesUseTheirOwnIcon checks the favorites draw their folders with a
+// star in them, which tells them from the recents' plain folders; the home
+// folder keeps the roof it has everywhere.
+func TestFavoritesUseTheirOwnIcon(t *testing.T) {
+	a := fixture(t)
+	dir := a.panes[0].tabs[0].path
+	if favoriteIcon(savedLocation{Name: "Code", Path: dir}) != iconFavorite {
+		t.Fatal("a favorite's folder does not take the starred icon")
+	}
+	if favoriteIcon(savedLocation{Name: "Home", Path: dir}) != iconHome {
+		t.Fatal("the home favorite lost its roof")
+	}
+	if iconFavorite == iconFolder {
+		t.Fatal("the favorites and the recents share one icon")
+	}
+	if locationIcon(savedLocation{Name: "Mounted Disk", Path: dir}) != iconFolder {
+		t.Fatal("a location's folder does not take the plain icon")
 	}
 }
