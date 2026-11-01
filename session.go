@@ -8,20 +8,36 @@ import (
 )
 
 type savedTab struct {
-	Path   string
-	Hidden bool
+	Path     string
+	Hidden   bool
+	Terminal bool
 }
 type savedPane struct {
 	Tabs    []savedTab
 	Current int
 }
-type session struct {
+type workspaceLayout struct {
+	Name   string
 	Panes  [2]savedPane
 	Active int
 	Split  float32
-	Width  float32
-	Light  bool
-	Fonts  fontSettings `json:"fonts"`
+}
+type savedLocation struct {
+	Name string
+	Path string
+}
+type session struct {
+	Panes        [2]savedPane
+	Active       int
+	Split        float32
+	Width        float32
+	Light        bool
+	Fonts        fontSettings      `json:"fonts"`
+	Workspaces   []workspaceLayout `json:"workspaces,omitempty"`
+	Workspace    int               `json:"workspace,omitempty"`
+	Recents      []string          `json:"recents,omitempty"`
+	Favorites    []savedLocation   `json:"favorites,omitempty"`
+	FavoritesSet bool              `json:"favoritesSet,omitempty"`
 }
 
 func sessionPath() string {
@@ -54,43 +70,41 @@ func (a *app) restore() {
 	if json.Unmarshal(data, &s) != nil {
 		return
 	}
-	for i, p := range s.Panes {
-		tabs := []*tab{}
-		for _, t := range p.Tabs {
-			if !filepath.IsAbs(t.Path) {
-				continue
-			}
-			tabs = append(tabs, &tab{path: t.Path, hidden: t.Hidden, marked: map[string]bool{}})
-		}
-		if len(tabs) > 0 {
-			a.panes[i] = pane{tabs: tabs}
-			if p.Current >= 0 && p.Current < len(tabs) {
-				a.panes[i].current = p.Current
-			}
-		}
-	}
-	if s.Active >= 0 && s.Active < 2 {
-		a.active = s.Active
-		a.focus = s.Active + 1
-	}
-	if s.Split >= 180 {
-		a.split = s.Split
-	}
+	a.light = s.Light
+	a.fonts = s.Fonts.normalized()
 	if s.Width > 0 {
 		a.lastWidth = s.Width
 	}
-	a.light = s.Light
-	a.fonts = s.Fonts.normalized()
+	if s.FavoritesSet || len(s.Favorites) > 0 {
+		a.favorites = existingLocations(s.Favorites)
+	}
+	a.recents = existingPaths(s.Recents)
+	if len(s.Workspaces) > 0 {
+		a.workspaces = append([]workspaceLayout(nil), s.Workspaces...)
+		for i := range a.workspaces {
+			a.workspaces[i].sanitize(i)
+		}
+	} else {
+		a.workspaces = []workspaceLayout{{Name: "Default", Panes: s.Panes, Active: s.Active, Split: s.Split}}
+		a.workspaces[0].sanitize(0)
+	}
+	if s.Workspace >= 0 && s.Workspace < len(a.workspaces) {
+		a.workspaceIndex = s.Workspace
+	}
+	a.applyWorkspace(a.workspaces[a.workspaceIndex], false)
+	a.sidebarSelection = workspaceItemID(a.workspaceIndex)
 }
 func (a *app) snapshotSession() session {
-	s := session{Active: a.active, Split: a.split, Width: a.lastWidth, Light: a.light, Fonts: a.fonts}
-	for i, p := range a.panes {
-		s.Panes[i].Current = p.current
-		for _, t := range p.tabs {
-			s.Panes[i].Tabs = append(s.Panes[i].Tabs, savedTab{t.path, t.hidden})
-		}
+	panes, active, split := a.captureLayout()
+	workspaces := append([]workspaceLayout(nil), a.workspaces...)
+	if a.workspaceIndex >= 0 && a.workspaceIndex < len(workspaces) {
+		workspaces[a.workspaceIndex] = workspaceLayout{Name: workspaces[a.workspaceIndex].Name, Panes: panes, Active: active, Split: split}
 	}
-	return s
+	return session{
+		Panes: panes, Active: active, Split: split, Width: a.lastWidth, Light: a.light, Fonts: a.fonts,
+		Workspaces: workspaces, Workspace: a.workspaceIndex, Recents: a.recents, Favorites: a.favorites,
+		FavoritesSet: true,
+	}
 }
 func saveSession(s session) {
 	path := sessionPath()

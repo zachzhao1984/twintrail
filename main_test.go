@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"image/png"
 	"os"
@@ -83,6 +84,10 @@ func TestTransfer(t *testing.T) {
 }
 func TestRender(t *testing.T) {
 	a := fixture(t)
+	second := &tab{path: a.panes[0].tabs[0].path, marked: map[string]bool{}}
+	a.panes[0].tabs = append(a.panes[0].tabs, second)
+	a.panes[0].current = 1
+	a.load(second, second.path)
 	img := ui.Render(a.view, 1100, 720, 1)
 	f, err := os.Create("/tmp/twintrail-preview.png")
 	if err != nil {
@@ -91,6 +96,73 @@ func TestRender(t *testing.T) {
 	defer f.Close()
 	if err = png.Encode(f, img); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestFileMenuClosesTab(t *testing.T) {
+	a := fixture(t)
+	m := a.applicationMenu()
+	closeTab := m.ItemByID("close-tab")
+	if closeTab == nil || closeTab.Accelerator != "Cmd+W" {
+		t.Fatalf("close tab item=%+v", closeTab)
+	}
+	var closeWindow *mygo.MenuItem
+	for _, top := range m.Items() {
+		if top.Label != "File" {
+			continue
+		}
+		for _, item := range top.Submenu {
+			if item.Role == mygo.RoleClose {
+				closeWindow = item
+			}
+		}
+	}
+	if closeWindow == nil || closeWindow.Accelerator != "Shift+Cmd+W" {
+		t.Fatalf("close window item=%+v", closeWindow)
+	}
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	if closeTab.IsEnabled() {
+		t.Fatal("Close Tab enabled with one tab")
+	}
+	a.newTab()
+	tt.Frame()
+	if !closeTab.IsEnabled() {
+		t.Fatal("Close Tab disabled with two tabs")
+	}
+	closeTab.Click(closeTab, nil)
+	tt.Frame()
+	if len(a.panes[0].tabs) != 1 {
+		t.Fatalf("menu did not close the tab: %d", len(a.panes[0].tabs))
+	}
+}
+
+func TestTabCloseButton(t *testing.T) {
+	a := fixture(t)
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Key(ui.Cmd, ui.KeyT)
+	tt.Frame()
+	if len(a.panes[0].tabs) != 2 {
+		t.Fatalf("tabs=%d", len(a.panes[0].tabs))
+	}
+	terminal := &fakeTerminal{}
+	a.panes[0].tabs[0].terminal.session = terminal
+	if err := tt.Click("Close tab 1 in pane 1"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.panes[0].tabs) != 1 {
+		t.Fatalf("tab not closed: %d", len(a.panes[0].tabs))
+	}
+	if !terminal.closed {
+		t.Fatal("closing a tab did not close its terminal")
+	}
+	if a.panes[0].current != 0 {
+		t.Fatalf("current tab=%d", a.panes[0].current)
+	}
+	a.closeTab(&a.panes[0], 0)
+	if len(a.panes[0].tabs) != 1 {
+		t.Fatal("last tab was closed")
 	}
 }
 

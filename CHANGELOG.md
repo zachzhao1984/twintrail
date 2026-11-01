@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- A Finder-style sidebar with Workspaces, Favorites, Recents and system
+  Locations. Workspaces remember the tabs in both panes, the current tab, the
+  active pane and the split position; the **+** beside the Workspaces header
+  captures the current layout and switching restores it.
+- Updated myGO to v0.7.3, along with purego, x/image, x/net and x/text.
+- Tabs can be closed with the × button on each tab or its Close Tab context
+  menu, besides ⌘W. Closing a tab also closes its terminal.
+- ⌘W closes the current tab instead of the window, as the File menu's Close
+  Window item used to claim that shortcut. Shift+⌘W now closes the window;
+  the File menu also offers New Tab.
+- Workspaces can be renamed or deleted from their sidebar context menu; a
+  window keeps at least one workspace. Favorites and recents can be removed
+  from their context menus, and removing every favorite does not restore the
+  defaults on the next launch. Deleting a workspace other than the last one
+  no longer closes the window: the change is applied after the frame that
+  drew the sidebar, instead of while it is being built.
+
 ## 0.1.2
 
 - No change to the app itself. This release re-runs the release build with

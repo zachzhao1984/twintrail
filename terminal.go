@@ -188,7 +188,40 @@ func (a *app) applicationMenu() *mygo.Menu {
 			w.Invalidate()
 		}
 	}}
-	return mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu, Submenu: []*mygo.MenuItem{{Role: mygo.RoleAbout}, updateMenuItem(), mygo.Separator(), a.preferenceMenu(), mygo.Separator(), {Role: mygo.RoleServices}, mygo.Separator(), {Role: mygo.RoleHide}, {Role: mygo.RoleHideOthers}, {Role: mygo.RoleUnhide}, mygo.Separator(), {Role: mygo.RoleQuit}}}, {Role: mygo.RoleFileMenu}, {Role: mygo.RoleEditMenu}, {Label: "View", Submenu: []*mygo.MenuItem{a.terminalMenu, mygo.Separator(), {Role: mygo.RoleToggleFullScreen}}}, {Role: mygo.RoleWindowMenu}})
+	return mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu, Submenu: []*mygo.MenuItem{{Role: mygo.RoleAbout}, updateMenuItem(), mygo.Separator(), a.preferenceMenu(), mygo.Separator(), {Role: mygo.RoleServices}, mygo.Separator(), {Role: mygo.RoleHide}, {Role: mygo.RoleHideOthers}, {Role: mygo.RoleUnhide}, mygo.Separator(), {Role: mygo.RoleQuit}}}, a.applicationFileMenu(), {Role: mygo.RoleEditMenu}, {Label: "View", Submenu: []*mygo.MenuItem{a.terminalMenu, mygo.Separator(), {Role: mygo.RoleToggleFullScreen}}}, {Role: mygo.RoleWindowMenu}})
+}
+
+// fileMenu replaces RoleFileMenu, whose Close Window item owns Cmd+W on
+// macOS and would close the window before the view's tab shortcut ran.
+func (a *app) applicationFileMenu() *mygo.MenuItem {
+	a.closeTabMenu = &mygo.MenuItem{ID: "close-tab", Label: "Close Tab", Accelerator: "Cmd+W", Disabled: len(a.panes[a.active].tabs) <= 1, Click: func(item *mygo.MenuItem, w *mygo.Window) {
+		p := &a.panes[a.active]
+		a.closeTab(p, p.current)
+		if w != nil {
+			w.Invalidate()
+		}
+	}}
+	return &mygo.MenuItem{Label: "File", Submenu: []*mygo.MenuItem{
+		{ID: "new-tab", Label: "New Tab", Accelerator: "Cmd+T", Click: func(item *mygo.MenuItem, w *mygo.Window) {
+			a.newTab()
+			if w != nil {
+				w.Invalidate()
+			}
+		}},
+		a.closeTabMenu,
+		mygo.Separator(),
+		{Role: mygo.RoleClose, Accelerator: "Shift+Cmd+W"},
+	}}
+}
+
+func (a *app) refreshFileMenu() {
+	if a.closeTabMenu == nil {
+		return
+	}
+	enabled := len(a.panes[a.active].tabs) > 1
+	if a.closeTabMenu.IsEnabled() != enabled {
+		a.closeTabMenu.SetEnabled(enabled)
+	}
 }
 func (a *app) refreshTerminalMenu() {
 	if a.terminalMenu != nil && a.terminalMenu.IsChecked() != a.current().terminal.visible {

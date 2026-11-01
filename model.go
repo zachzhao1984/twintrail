@@ -46,6 +46,7 @@ type dialog struct {
 	open         bool
 	sources      []string
 	target       string
+	index        int
 	input        ui.Handle
 	applications []openWithApplication
 	loading      bool
@@ -74,8 +75,16 @@ type app struct {
 	closed               bool
 	newTerminal          func(string) (terminalSession, error)
 	terminalMenu         *mygo.MenuItem
+	closeTabMenu         *mygo.MenuItem
 	terminalJobs         sync.WaitGroup
 	terminalSessions     sync.Map
+	workspaces           []workspaceLayout
+	workspaceIndex       int
+	sidebarSelection     string
+	recents              []string
+	favorites            []savedLocation
+	locations            []savedLocation
+	pending              []func()
 }
 
 func newApp(left, right string) *app {
@@ -84,9 +93,40 @@ func newApp(left, right string) *app {
 		t := &tab{path: p, marked: map[string]bool{}}
 		a.panes[i] = pane{tabs: []*tab{t}}
 	}
+	a.workspaces = []workspaceLayout{{Name: "Default"}}
+	a.workspaceIndex = 0
+	a.sidebarSelection = workspaceItemID(0)
+	a.favorites = defaultFavorites()
+	a.locations = systemLocations()
 	return a
 }
 func (a *app) current() *tab { p := &a.panes[a.active]; return p.tabs[p.current] }
+
+func (a *app) newTab() {
+	p := &a.panes[a.active]
+	t := &tab{path: a.current().path, marked: map[string]bool{}}
+	p.tabs = append(p.tabs, t)
+	p.current = len(p.tabs) - 1
+	a.load(t, t.path)
+}
+
+// closeTab removes one tab and keeps the pane's current tab valid. A pane
+// always keeps at least one tab, so the last one cannot be closed.
+func (a *app) closeTab(p *pane, index int) {
+	if index < 0 || index >= len(p.tabs) || len(p.tabs) <= 1 {
+		return
+	}
+	a.closeTerminal(p.tabs[index])
+	p.tabs[index].generation++
+	p.tabs = append(p.tabs[:index], p.tabs[index+1:]...)
+	if index < p.current {
+		p.current--
+	}
+	if p.current >= len(p.tabs) {
+		p.current = len(p.tabs) - 1
+	}
+	a.focus = a.active + 1
+}
 func readDirectory(path string, hidden bool) ([]entry, error) {
 	ds, err := os.ReadDir(path)
 	if err != nil {
@@ -135,6 +175,22 @@ func (a *app) job(work func() func()) {
 	publish := a.update
 	go func() { done := work(); publish(done) }()
 }
+
+// deferAction runs fn at the start of the next frame. Context menus are
+// built during a frame and report their choice in that build, so changing
+// a slice the view is still iterating must wait until the build ends.
+func (a *app) deferAction(c *ui.Context, fn func()) {
+	a.pending = append(a.pending, fn)
+	c.Invalidate()
+}
+
+func (a *app) runPending() {
+	pending := a.pending
+	a.pending = nil
+	for _, fn := range pending {
+		fn()
+	}
+}
 func (a *app) load(t *tab, path string) {
 	path = filepath.Clean(path)
 	t.generation++
@@ -156,6 +212,7 @@ func (a *app) load(t *tab, path string) {
 			}
 			t.path = path
 			t.disk = disk
+			a.recordRecent(path)
 			t.entries = es
 			sortEntries(t.entries, t.descending)
 			t.cursor = 0
@@ -258,6 +315,10 @@ func (a *app) confirm() {
 		}
 		a.load(a.current(), path)
 		a.modal = nil
+		return
+	}
+	if d.kind == "Rename workspace" {
+		a.confirmRenameWorkspace(d)
 		return
 	}
 	if a.busy {

@@ -8,40 +8,47 @@ import (
 )
 
 func (a *app) view(c *ui.Context) {
+	a.runPending()
 	width, _ := c.Size()
-	if width > 0 && a.lastWidth > 0 && width != a.lastWidth {
-		a.split *= width / a.lastWidth
+	contentWidth := width - sidebarWidth
+	if contentWidth > 0 && a.lastWidth > 0 && contentWidth != a.lastWidth {
+		a.split *= contentWidth / a.lastWidth
 	}
-	if width > 0 {
-		a.lastWidth = width
+	if contentWidth > 0 {
+		a.lastWidth = contentWidth
 	}
 	a.refreshTerminalMenu()
+	a.refreshFileMenu()
 	theme := martaTheme(a.light)
 	c.SetTheme(theme)
 	ui.Column(c).Fill().Gap(0).Background(theme.Background).Children(func() {
 		bar := c.TitleBar()
-		ui.Row(c).Height(max(bar.Height, 28)).Background(theme.Background).Center().DragWindow().Children(func() {
-			ui.Text(c, "Twintrail").TextAlign(ui.Center).FontSize(13).Bold().TextColor(theme.TextMuted)
+		ui.Row(c).Fill().Gap(0).AlignItems(ui.Stretch).Children(func() {
+			a.sidebarView(c)
+			ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+				// Keep the drag strip the traffic lights sit beside.
+				ui.Box(c).Height(max(bar.Height, 28)).Background(theme.Background).DragWindow()
+				ui.Split(c, &a.split, func() { a.paneView(c, 0) }, func() { a.paneView(c, 1) }).Grow(1)
+				if a.status != "Ready" && a.status != "" {
+					ui.Text(c, a.status).Height(20).PaddingX(6).TextColor(theme.TextMuted)
+				}
+				a.fonts.ActionBar.apply(ui.Row(c).Height(fontHeight(a.fonts.ActionBar, 20) + 6).Padding(3).Gap(3).Background(theme.Background)).Children(func() {
+					for _, b := range []struct {
+						name string
+						fn   func()
+					}{
+						{"⌘↵ Open With", a.openWith}, {"F4 Edit", a.edit}, {"F5 Copy", func() { a.ask("Copy") }},
+						{"F6 Move", func() { a.ask("Move") }}, {"⇧F6 Rename", func() { a.ask("Rename") }},
+						{"F7 New Folder", func() { a.ask("New folder") }}, {"⇧F8 Delete", func() { a.ask("Delete") }},
+					} {
+						ui.ButtonBase(c).Grow(1).Height(fontHeight(a.fonts.ActionBar, 20)).Background(theme.Surface).Radius(2).PaddingX(5).AlignItems(ui.Center).Justify(ui.Start).Children(func() { ui.Text(c, b.name).TextColor(theme.TextMuted) }).OnClick(b.fn).Disabled(a.busy || a.modal != nil)
+					}
+				})
+				if a.current().terminal.visible {
+					a.terminalView(c)
+				}
+			})
 		})
-		ui.Split(c, &a.split, func() { a.paneView(c, 0) }, func() { a.paneView(c, 1) }).Grow(1)
-		if a.status != "Ready" && a.status != "" {
-			ui.Text(c, a.status).Height(20).PaddingX(6).TextColor(theme.TextMuted)
-		}
-		a.fonts.ActionBar.apply(ui.Row(c).Height(fontHeight(a.fonts.ActionBar, 20) + 6).Padding(3).Gap(3).Background(theme.Background)).Children(func() {
-			for _, b := range []struct {
-				name string
-				fn   func()
-			}{
-				{"⌘↵ Open With", a.openWith}, {"F4 Edit", a.edit}, {"F5 Copy", func() { a.ask("Copy") }},
-				{"F6 Move", func() { a.ask("Move") }}, {"⇧F6 Rename", func() { a.ask("Rename") }},
-				{"F7 New Folder", func() { a.ask("New folder") }}, {"⇧F8 Delete", func() { a.ask("Delete") }},
-			} {
-				ui.ButtonBase(c).Grow(1).Height(fontHeight(a.fonts.ActionBar, 20)).Background(theme.Surface).Radius(2).PaddingX(5).AlignItems(ui.Center).Justify(ui.Start).Children(func() { ui.Text(c, b.name).TextColor(theme.TextMuted) }).OnClick(b.fn).Disabled(a.busy || a.modal != nil)
-			}
-		})
-		if a.current().terminal.visible {
-			a.terminalView(c)
-		}
 		if a.modal != nil {
 			a.dialogView(c)
 		}
@@ -68,23 +75,10 @@ func (a *app) view(c *ui.Context) {
 		c.OnShortcut(ui.Cmd, ui.KeyF12, func() { services.WriteClipboard(strings.Join(a.targets(), "\n")) })
 		c.OnShortcut(0, ui.KeyF11, func() { a.launch("open", "-a", "Terminal", a.current().path) })
 		c.OnShortcut(0, ui.KeyTab, func() { a.active = 1 - a.active; a.focus = a.active + 1 })
-		c.OnShortcut(ui.Cmd, ui.KeyT, func() {
-			p := &a.panes[a.active]
-			t := &tab{path: a.current().path, marked: map[string]bool{}}
-			p.tabs = append(p.tabs, t)
-			p.current = len(p.tabs) - 1
-			a.load(t, t.path)
-		})
+		c.OnShortcut(ui.Cmd, ui.KeyT, a.newTab)
 		c.OnShortcut(ui.Cmd, ui.KeyW, func() {
 			p := &a.panes[a.active]
-			if len(p.tabs) > 1 {
-				a.closeTerminal(p.tabs[p.current])
-				p.tabs[p.current].generation++
-				p.tabs = append(p.tabs[:p.current], p.tabs[p.current+1:]...)
-				if p.current >= len(p.tabs) {
-					p.current--
-				}
-			}
+			a.closeTab(p, p.current)
 		})
 		c.OnShortcut(ui.Cmd, ui.KeyBackquote, a.toggleTerminal)
 		c.OnShortcut(ui.Cmd|ui.Shift, ui.KeyPeriod, func() { t := a.current(); t.hidden = !t.hidden; a.load(t, t.path) })
@@ -106,7 +100,8 @@ func (a *app) paneView(c *ui.Context, index int) {
 	c.Key(fmt.Sprintf("pane-%d", index))
 	ui.Column(c).Fill().Gap(0).Disabled(a.modal != nil).Children(func() {
 		if len(p.tabs) > 1 {
-			ui.Row(c).Height(max(fontHeight(a.fonts.Tabs, 24), fontHeight(a.fonts.VirtualTabs, 24))).Gap(1).Background(theme.Border).Border(1, theme.Border).BorderWidth(0, 0, 1, 0).Children(func() {
+			tabHeight := max(fontHeight(a.fonts.Tabs, 24), fontHeight(a.fonts.VirtualTabs, 24))
+			ui.Row(c).Height(tabHeight).Gap(1).Background(theme.Border).Border(1, theme.Border).BorderWidth(0, 0, 1, 0).Children(func() {
 				for i, tab := range p.tabs {
 					bg := ui.Hex("#1e252c")
 					foreground := ui.Hex("#787f87")
@@ -122,18 +117,31 @@ func (a *app) paneView(c *ui.Context, index int) {
 							foreground = theme.Text
 						}
 					}
-					c.Key(fmt.Sprintf("tab-%p", tab))
 					tabFont := a.fonts.Tabs
 					if i == p.current {
 						tabFont = a.fonts.VirtualTabs
 					}
-					tabFont.apply(ui.ButtonBase(c).Grow(1).Height(max(fontHeight(a.fonts.Tabs, 24), fontHeight(a.fonts.VirtualTabs, 24))).Background(bg).PaddingX(10)).Children(func() {
-						name := filepath.Base(tab.path)
-						if tab.path == "/" {
-							name = "Macintosh HD"
+					name := filepath.Base(tab.path)
+					if tab.path == "/" {
+						name = "Macintosh HD"
+					}
+					c.Key(fmt.Sprintf("tab-%p", tab))
+					ui.Row(c).Grow(1).Height(tabHeight).Background(bg).Children(func() {
+						c.Key(fmt.Sprintf("select-tab-%p", tab))
+						tabFont.apply(ui.ButtonBase(c).Grow(1).Height(tabHeight).PaddingX(10).AlignItems(ui.Center)).Children(func() {
+							ui.Text(c, name).SingleLine().TextColor(foreground)
+						}).OnClick(func() { p.current = i; a.active = index; a.focus = index + 1 })
+						c.Key(fmt.Sprintf("close-tab-%p", tab))
+						ui.ButtonBase(c).Width(20).Height(tabHeight).AlignItems(ui.Center).Justify(ui.Center).Children(func() {
+							ui.Text(c, "×").FontSize(13).TextColor(foreground)
+						}).Label(fmt.Sprintf("Close tab %d in pane %d", i+1, index+1)).OnClick(func() { a.active = index; a.focus = index + 1; a.closeTab(p, i) })
+					}).ContextMenu(func(m *ui.Menu) {
+						if m.Item("Close Tab").Disabled(len(p.tabs) <= 1).Chosen() {
+							a.active = index
+							a.focus = index + 1
+							a.closeTab(p, i)
 						}
-						ui.Text(c, name).SingleLine().TextColor(foreground)
-					}).OnClick(func() { p.current = i; a.active = index; a.focus = index + 1 })
+					})
 				}
 			})
 		}
@@ -340,7 +348,11 @@ func (a *app) dialogView(c *ui.Context) {
 				a.preferencesView(c)
 				return
 			}
-			ui.Text(c, d.kind).Bold().FontSize(15)
+			title, action, label := d.kind, d.kind, d.kind+" destination"
+			if d.kind == "Rename workspace" {
+				title, action, label = "Rename Workspace", "Rename", "Workspace name"
+			}
+			ui.Text(c, title).Bold().FontSize(15)
 			if d.kind == "Actions" {
 				ui.TextInput(c, &d.value).Placeholder("Search actions…").Bind(&d.input).Focus()
 				for _, kind := range []string{"Go to path", "Copy", "Move", "Rename", "New folder", "Move to Trash", "Delete"} {
@@ -353,7 +365,7 @@ func (a *app) dialogView(c *ui.Context) {
 					ui.Text(c, fmt.Sprintf("%d item(s) · %s", len(d.sources), filepath.Base(d.sources[0]))).TextColor(c.Theme().TextMuted)
 				}
 				if d.kind != "Move to Trash" && d.kind != "Delete" {
-					ui.TextInput(c, &d.value).Label(d.kind + " destination").Bind(&d.input).Focus().OnSubmit(a.confirm)
+					ui.TextInput(c, &d.value).Label(label).Bind(&d.input).Focus().OnSubmit(a.confirm)
 				} else {
 					message := "Move the selected items to the macOS Trash?"
 					if d.kind == "Delete" {
@@ -361,8 +373,11 @@ func (a *app) dialogView(c *ui.Context) {
 					}
 					ui.Text(c, message)
 				}
+				if d.err != "" {
+					ui.Text(c, d.err).TextColor(c.Theme().Danger)
+				}
 				ui.Row(c).Gap(8).Children(func() {
-					ui.PrimaryButton(c, d.kind).Disabled(a.busy).OnClick(a.confirm)
+					ui.PrimaryButton(c, action).Disabled(a.busy).OnClick(a.confirm)
 					ui.Button(c, "Cancel").OnClick(func() { a.modal = nil; a.focus = a.active + 1 })
 				})
 			}

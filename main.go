@@ -29,6 +29,9 @@ func main() {
 		for i := range a.panes {
 			for _, t := range a.panes[i].tabs {
 				a.load(t, t.path)
+				if t.terminal.visible {
+					a.ensureTerminal(t)
+				}
 			}
 		}
 	})

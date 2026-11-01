@@ -1,0 +1,325 @@
+package main
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/egoist/mygo/ui"
+)
+
+func TestSidebarShowsSections(t *testing.T) {
+	a := fixture(t)
+	a.favorites = []savedLocation{{Name: "Marked Folder", Path: a.panes[0].tabs[0].path}}
+	a.locations = []savedLocation{{Name: "Macintosh HD", Path: "/"}}
+	a.recents = []string{a.panes[1].tabs[0].path}
+	tt := ui.NewTester(a.view, 1100, 720)
+	for _, text := range []string{"Workspaces", "Favorites", "Recents", "Locations", "New Workspace", "Marked Folder", "Macintosh HD"} {
+		if !tt.HasText(text) {
+			t.Fatalf("sidebar missing %q: %q", text, tt.Texts())
+		}
+	}
+	// The + sits at the right end of the Workspaces header, in its row.
+	header, ok := tt.Find("Workspaces")
+	if !ok {
+		t.Fatal("no Workspaces header")
+	}
+	add, ok := tt.Find("New Workspace")
+	if !ok {
+		t.Fatal("no + button")
+	}
+	if add.X < header.X+header.W {
+		t.Fatalf("+ not right of the header: header=%+v add=%+v", header, add)
+	}
+	if center := header.Y + header.H/2; add.Y > center || add.Y+add.H < center {
+		t.Fatalf("+ not in the header row: header=%+v add=%+v", header, add)
+	}
+}
+
+func TestSidebarNavigatesToFavorite(t *testing.T) {
+	a := fixture(t)
+	target := filepath.Join(a.panes[0].tabs[0].path, "Folder")
+	a.favorites = []savedLocation{{Name: "Nested", Path: target}}
+	a.locations = nil
+	tt := ui.NewTester(a.view, 1100, 720)
+	if err := tt.Click("Nested"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if got := a.current().path; got != target {
+		t.Fatalf("current path=%q want %q", got, target)
+	}
+	if len(a.recents) == 0 || a.recents[0] != target {
+		t.Fatalf("recent not recorded: %v", a.recents)
+	}
+}
+
+func TestWorkspaceRemembersLayout(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Key(ui.Cmd, ui.KeyT)
+	tt.Frame()
+	if len(a.panes[0].tabs) != 2 {
+		t.Fatalf("new tab missing: %d", len(a.panes[0].tabs))
+	}
+	if err := tt.Click("New Workspace"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.workspaces) != 2 || a.workspaceIndex != 1 {
+		t.Fatalf("workspace not created: %d at %d", len(a.workspaces), a.workspaceIndex)
+	}
+	tt.Key(ui.Cmd, ui.KeyW)
+	tt.Frame()
+	if len(a.panes[0].tabs) != 1 {
+		t.Fatalf("tab not closed: %d", len(a.panes[0].tabs))
+	}
+	if err := tt.Click("Default"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.workspaceIndex != 0 || len(a.panes[0].tabs) != 2 {
+		t.Fatalf("default layout not restored: workspace=%d tabs=%d", a.workspaceIndex, len(a.panes[0].tabs))
+	}
+	if err := tt.Click("Workspace 2"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.workspaceIndex != 1 || len(a.panes[0].tabs) != 1 {
+		t.Fatalf("second layout not restored: workspace=%d tabs=%d", a.workspaceIndex, len(a.panes[0].tabs))
+	}
+}
+
+func TestWorkspaceRenameAndDelete(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	tt := ui.NewTester(a.view, 1100, 720)
+	if err := tt.Click("New Workspace"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.RightClick("Workspace 2"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Rename Workspace…"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.modal == nil || a.modal.kind != "Rename workspace" {
+		t.Fatalf("rename dialog=%+v", a.modal)
+	}
+	a.modal.value = "  "
+	a.confirm()
+	tt.Frame()
+	if a.modal == nil || a.modal.err == "" {
+		t.Fatal("empty name accepted")
+	}
+	a.modal.value = "Dev"
+	a.confirm()
+	tt.Frame()
+	if a.workspaces[1].Name != "Dev" || !tt.HasText("Dev") {
+		t.Fatalf("workspace not renamed: %+v", a.workspaces[1])
+	}
+	if err := tt.RightClick("Dev"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Delete Workspace"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.workspaces) != 1 || a.workspaceIndex != 0 || a.workspaces[0].Name != "Default" {
+		t.Fatalf("workspace not deleted: %+v at %d", a.workspaces, a.workspaceIndex)
+	}
+	if err := tt.RightClick("Default"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Delete Workspace"); err == nil {
+		t.Fatal("last workspace can be deleted")
+	}
+}
+
+func TestWorkspaceDeleteBeforeCurrent(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	tt := ui.NewTester(a.view, 1100, 720)
+	for i := 0; i < 2; i++ {
+		if err := tt.Click("New Workspace"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+	}
+	if len(a.workspaces) != 3 || a.workspaceIndex != 2 {
+		t.Fatalf("workspaces=%+v at %d", a.workspaces, a.workspaceIndex)
+	}
+	// Deleting an earlier workspace shrinks the slice while the sidebar is
+	// still building from it, which used to panic and close the window.
+	if err := tt.RightClick("Default"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Delete Workspace"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.workspaces) != 2 || a.workspaceIndex != 1 {
+		t.Fatalf("workspaces=%+v at %d", a.workspaces, a.workspaceIndex)
+	}
+	if a.workspaces[0].Name != "Workspace 2" || a.workspaces[1].Name != "Workspace 3" {
+		t.Fatalf("wrong workspace removed: %+v", a.workspaces)
+	}
+	if tt.HasText("Default") || !tt.HasText("Workspace 3") {
+		t.Fatalf("sidebar out of date: %q", tt.Texts())
+	}
+	if err := tt.Click("Workspace 2"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.workspaceIndex != 0 {
+		t.Fatalf("workspace switch after delete failed: %d", a.workspaceIndex)
+	}
+}
+
+func TestSidebarRemovesFavoritesAndRecents(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	recent := filepath.Join(t.TempDir(), "Recent Target")
+	if err := os.Mkdir(recent, 0755); err != nil {
+		t.Fatal(err)
+	}
+	a.favorites = []savedLocation{{Name: "Favorite Target", Path: a.panes[0].tabs[0].path}}
+	a.recents = []string{recent}
+	tt := ui.NewTester(a.view, 1100, 720)
+	if err := tt.RightClick("Favorite Target"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Remove from Favorites"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.favorites) != 0 || tt.HasText("Favorite Target") {
+		t.Fatalf("favorite not removed: %+v", a.favorites)
+	}
+	if err := tt.RightClick("Recent Target"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Remove from Recents"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.recents) != 0 || tt.HasText("Recent Target") {
+		t.Fatalf("recent not removed: %v", a.recents)
+	}
+}
+
+func TestSidebarRemovesFirstOfSeveral(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	first := filepath.Join(t.TempDir(), "First Recent")
+	second := filepath.Join(t.TempDir(), "Second Recent")
+	for _, path := range []string{first, second} {
+		if err := os.Mkdir(path, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	a.favorites = []savedLocation{{Name: "First Favorite", Path: a.panes[0].tabs[0].path}, {Name: "Second Favorite", Path: a.panes[1].tabs[0].path}}
+	a.recents = []string{first, second}
+	tt := ui.NewTester(a.view, 1100, 720)
+	if err := tt.RightClick("First Favorite"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Remove from Favorites"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.favorites) != 1 || a.favorites[0].Name != "Second Favorite" || !tt.HasText("Second Favorite") {
+		t.Fatalf("wrong favorite removed: %+v", a.favorites)
+	}
+	if err := tt.RightClick("First Recent"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Remove from Recents"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.recents) != 1 || a.recents[0] != second || !tt.HasText("Second Recent") {
+		t.Fatalf("wrong recent removed: %v", a.recents)
+	}
+}
+
+func TestEmptyFavoritesStayRemoved(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	a := fixture(t)
+	a.favorites = nil
+	data, err := json.Marshal(a.snapshotSession())
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(home, "Library", "Application Support", "Twintrail", "session.json")
+	if err = os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	b := newApp(a.panes[0].tabs[0].path, a.panes[1].tabs[0].path)
+	b.restore()
+	if len(b.favorites) != 0 {
+		t.Fatalf("empty favorites restored defaults: %+v", b.favorites)
+	}
+}
+
+func TestWorkspaceSessionRoundTrip(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	a.createWorkspace()
+	a.panes[0].tabs[0].hidden = true
+	a.panes[0].tabs[0].terminal.visible = true
+	tab := &tab{path: a.panes[1].tabs[0].path, hidden: false, marked: map[string]bool{}}
+	a.panes[0].tabs = append(a.panes[0].tabs, tab)
+	a.panes[0].current = 1
+	saved := a.snapshotSession()
+	if len(saved.Workspaces) != 2 || saved.Workspace != 1 {
+		t.Fatalf("workspaces=%d current=%d", len(saved.Workspaces), saved.Workspace)
+	}
+	if len(saved.Workspaces[1].Panes[0].Tabs) != 2 || saved.Workspaces[1].Panes[0].Current != 1 {
+		t.Fatalf("current layout not captured: %+v", saved.Workspaces[1].Panes[0])
+	}
+	if !saved.Workspaces[1].Panes[0].Tabs[0].Terminal || !saved.Workspaces[1].Panes[0].Tabs[0].Hidden {
+		t.Fatalf("tab state not captured: %+v", saved.Workspaces[1].Panes[0].Tabs[0])
+	}
+	data, err := json.Marshal(saved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var restored session
+	if err = json.Unmarshal(data, &restored); err != nil {
+		t.Fatal(err)
+	}
+	if len(restored.Workspaces) != 2 || restored.Workspaces[1].Name != "Workspace 2" {
+		t.Fatalf("workspaces lost: %+v", restored.Workspaces)
+	}
+	if restored.Workspaces[1].Panes[0].Tabs[0].Path != saved.Workspaces[1].Panes[0].Tabs[0].Path {
+		t.Fatal("tab path lost")
+	}
+}
+
+func TestWorkspaceSanitize(t *testing.T) {
+	w := workspaceLayout{Panes: [2]savedPane{{Tabs: []savedTab{{Path: "relative"}, {Path: "/tmp"}}, Current: 4}}, Active: 3}
+	w.sanitize(0)
+	if w.Name != "Default" || w.Active != 0 || w.Split != 550 {
+		t.Fatalf("workspace not normalized: %+v", w)
+	}
+	if len(w.Panes[0].Tabs) != 1 || w.Panes[0].Tabs[0].Path != "/tmp" || w.Panes[0].Current != 0 {
+		t.Fatalf("tabs not sanitized: %+v", w.Panes[0])
+	}
+}
+
+func TestSessionKeepsLegacyPanes(t *testing.T) {
+	a := fixture(t)
+	saved := a.snapshotSession()
+	if saved.Panes[0].Tabs[0].Path != a.panes[0].tabs[0].path {
+		t.Fatal("legacy pane snapshot lost")
+	}
+}
