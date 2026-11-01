@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -443,5 +444,98 @@ func TestSidebarSectionsCollapse(t *testing.T) {
 	if b.recentsOpen || !b.favoritesOpen || b.locationsOpen {
 		t.Fatalf("sections restored open=%v/%v/%v, want false/true/false",
 			b.favoritesOpen, b.recentsOpen, b.locationsOpen)
+	}
+}
+
+// TestSidebarHidesAndShows folds the sidebar away from the button at its top
+// bar, which gives its room to the panes, brings it back from the button in
+// their strip, and keeps it hidden across launches.
+func TestSidebarHidesAndShows(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	tt := ui.NewTester(a.view, 1100, 720)
+	if !tt.HasText("Workspaces") {
+		t.Fatalf("sidebar missing: %v", tt.Texts())
+	}
+	start := a.sidebarShown
+	if err := tt.Click("Hide Sidebar"); err != nil {
+		t.Fatalf("%v (labels %v)", err, tt.Texts())
+	}
+	tt.Frame()
+	// It folds away over a moment rather than at once.
+	tt.Advance(sidebarFoldTime / 2)
+	if a.sidebarShown <= 0 || a.sidebarShown >= start {
+		t.Fatalf("sidebar width %v of %v halfway through the fold", a.sidebarShown, start)
+	}
+	tt.Advance(sidebarFoldTime)
+	tt.Frame()
+	if !a.sidebarHidden || a.sidebarShown != 0 || tt.HasText("Workspaces") || tt.HasText("Twintrail") {
+		t.Fatalf("sidebar not hidden: hidden=%v width=%v texts=%v", a.sidebarHidden, a.sidebarShown, tt.Texts())
+	}
+	if !tt.HasText("Name") || !tt.HasText("hello.txt") {
+		t.Fatalf("panes lost: %v", tt.Texts())
+	}
+	if err := tt.Click("Show Sidebar"); err != nil {
+		t.Fatalf("%v (labels %v)", err, tt.Texts())
+	}
+	tt.Frame()
+	tt.Advance(sidebarFoldTime * 2)
+	tt.Frame()
+	if a.sidebarHidden || !tt.HasText("Workspaces") {
+		t.Fatalf("sidebar not shown: hidden=%v texts=%v", a.sidebarHidden, tt.Texts())
+	}
+	if a.sidebarWidth != start {
+		t.Fatalf("sidebar width %v, want the one it had, %v", a.sidebarWidth, start)
+	}
+	// The window comes back as it was left.
+	a.sidebarHidden = true
+	data, err := json.Marshal(a.snapshotSession())
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(home, "Library", "Application Support", "Twintrail", "session.json")
+	if err = os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	b := newApp(a.panes[0].tabs[0].path, a.panes[1].tabs[0].path)
+	b.restore()
+	if !b.sidebarHidden {
+		t.Fatal("the hidden sidebar was not restored")
+	}
+}
+
+// TestSidebarTextMatchesFileRows checks the sidebar's items read at the size of
+// the file rows beside them, and follow the File font setting with them.
+func TestSidebarTextMatchesFileRows(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	dir := a.panes[0].tabs[0].path
+	a.favorites = []savedLocation{{Name: "Marked", Path: dir}}
+	tt := ui.NewTester(a.view, 1100, 720)
+	height := func(name string) float32 {
+		r, ok := tt.Find(name)
+		if !ok {
+			t.Fatalf("no %q: %v", name, tt.Texts())
+		}
+		return r.H
+	}
+	item := height("Marked")
+	if size := height("5 bytes"); math.Abs(float64(item-size)) > 0.6 {
+		t.Fatalf("sidebar item %.2f high, the file rows' text %.2f", item, size)
+	}
+	// A larger File font takes the sidebar's items with it.
+	a.fonts.Files.Size += 6
+	tt.Frame()
+	grown := height("Marked")
+	if grown <= item {
+		t.Fatalf("sidebar item %.2f high, was %.2f", grown, item)
+	}
+	if size := height("5 bytes"); math.Abs(float64(grown-size)) > 0.6 {
+		t.Fatalf("sidebar item %.2f high, the file rows' text %.2f", grown, size)
 	}
 }

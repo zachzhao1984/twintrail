@@ -11,7 +11,10 @@ func (a *app) view(c *ui.Context) {
 	a.runPending()
 	a.clampSidebarWidth()
 	width, _ := c.Size()
-	contentWidth := width - a.sidebarWidth
+	contentWidth := width - a.sidebarShown
+	if a.sidebarShown <= 0 {
+		contentWidth = width
+	}
 	if contentWidth > 0 && a.lastWidth > 0 && contentWidth != a.lastWidth {
 		a.split *= contentWidth / a.lastWidth
 	}
@@ -22,14 +25,21 @@ func (a *app) view(c *ui.Context) {
 	a.refreshFileMenu()
 	theme := martaTheme(a.light)
 	c.SetTheme(theme)
-	ui.Column(c).Fill().Gap(0).Background(theme.Background).Children(func() {
-		bar := c.TitleBar()
-		// The line between the sidebar and the panes resizes the sidebar, as
-		// the line between the panes resizes them.
-		ui.Split(c, &a.sidebarWidth, func() { a.sidebarView(c) }, func() {
+	root := ui.Column(c).Fill().Gap(0).Background(theme.Background)
+	a.foldSidebar(root)
+	root.Children(func() {
+		panes := func() {
 			ui.Column(c).Fill().MinWidth(0).Children(func() {
-				// Keep the drag strip the traffic lights sit beside.
-				ui.Box(c).Height(max(bar.Height, 28)).Background(theme.Background).DragWindow()
+				// Keep the drag strip the traffic lights sit beside, which holds
+				// the button that brings the sidebar back while it is hidden.
+				ui.Row(c).Height(titleStripHeight(c)).AlignItems(ui.Center).Background(theme.Background).Children(func() {
+					if a.sidebarShown <= 0 {
+						// Clear the traffic lights, which sit at the window's left.
+						ui.Box(c).Width(trafficLightsWidth).Height(titleStripHeight(c)).DragWindow()
+						a.sidebarToggle(c, "Show Sidebar")
+					}
+					ui.Box(c).Height(titleStripHeight(c)).Grow(1).DragWindow()
+				})
 				ui.Split(c, &a.split, func() { a.paneView(c, 0) }, func() { a.paneView(c, 1) }).Grow(1)
 				if a.status != "Ready" && a.status != "" {
 					ui.Text(c, a.status).Height(20).PaddingX(6).TextColor(theme.TextMuted)
@@ -50,7 +60,14 @@ func (a *app) view(c *ui.Context) {
 					a.terminalView(c)
 				}
 			})
-		}).Fill()
+		}
+		// The line between the sidebar and the panes resizes the sidebar, as
+		// the line between the panes resizes them.
+		if a.sidebarShown <= 0 {
+			panes()
+		} else {
+			ui.Split(c, &a.sidebarShown, func() { a.sidebarView(c) }, panes).Fill()
+		}
 		if a.modal != nil {
 			a.dialogView(c)
 		}

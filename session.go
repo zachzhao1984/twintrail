@@ -32,13 +32,15 @@ type session struct {
 	Split        float32
 	Width        float32
 	SidebarWidth float32 `json:"sidebarWidth,omitempty"`
-	Light        bool
-	Fonts        fontSettings      `json:"fonts"`
-	Workspaces   []workspaceLayout `json:"workspaces,omitempty"`
-	Workspace    int               `json:"workspace,omitempty"`
-	Recents      []string          `json:"recents,omitempty"`
-	Favorites    []savedLocation   `json:"favorites,omitempty"`
-	FavoritesSet bool              `json:"favoritesSet,omitempty"`
+	// SidebarHidden tells the window was left with the sidebar folded away.
+	SidebarHidden bool `json:"sidebarHidden,omitempty"`
+	Light         bool
+	Fonts         fontSettings      `json:"fonts"`
+	Workspaces    []workspaceLayout `json:"workspaces,omitempty"`
+	Workspace     int               `json:"workspace,omitempty"`
+	Recents       []string          `json:"recents,omitempty"`
+	Favorites     []savedLocation   `json:"favorites,omitempty"`
+	FavoritesSet  bool              `json:"favoritesSet,omitempty"`
 	// The sidebar sections the user collapsed, open by default.
 	FavoritesCollapsed bool `json:"favoritesCollapsed,omitempty"`
 	RecentsCollapsed   bool `json:"recentsCollapsed,omitempty"`
@@ -84,6 +86,10 @@ func (a *app) restore() {
 		a.sidebarWidth = s.SidebarWidth
 		a.clampSidebarWidth()
 	}
+	a.sidebarHidden, a.sidebarShown = s.SidebarHidden, a.sidebarWidth
+	if a.sidebarHidden {
+		a.sidebarShown = 0
+	}
 	if s.FavoritesSet || len(s.Favorites) > 0 {
 		a.favorites = existingLocations(s.Favorites)
 	}
@@ -113,7 +119,7 @@ func (a *app) snapshotSession() session {
 	}
 	return session{
 		Panes: panes, Active: active, Split: split, Width: a.lastWidth, SidebarWidth: a.sidebarWidth,
-		Light: a.light, Fonts: a.fonts,
+		SidebarHidden: a.sidebarHidden, Light: a.light, Fonts: a.fonts,
 		Workspaces: workspaces, Workspace: a.workspaceIndex, Recents: a.recents, Favorites: a.favorites,
 		FavoritesSet: true, FavoritesCollapsed: !a.favoritesOpen, RecentsCollapsed: !a.recentsOpen,
 		LocationsCollapsed: !a.locationsOpen,

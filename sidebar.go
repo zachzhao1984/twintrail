@@ -17,7 +17,13 @@ const (
 	// minSidebarWidth keeps the sidebar's items readable when it is dragged
 	// narrow.
 	minSidebarWidth float32 = 120
+	// trafficLightsWidth is the room the window's buttons take at its left,
+	// which what the user puts beside them keeps clear.
+	trafficLightsWidth float32 = 84
 )
+
+// sidebarFoldTime is how long the sidebar takes to fold away or to come back.
+const sidebarFoldTime = 220 * time.Millisecond
 
 var (
 	iconWorkspace    = sidebarIcon(`<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>`)
@@ -27,10 +33,78 @@ var (
 	iconCloud        = sidebarIcon(`<path d="M17.5 19a4.5 4.5 0 0 0 .5-9 6 6 0 0 0-11.6 1.6A3.5 3.5 0 0 0 6.5 19z"/>`)
 	iconDrive        = sidebarIcon(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15h18"/><path d="M7 18h.01M11 18h.01"/>`)
 	iconChevron      = sidebarIcon(`<path d="m9 6 6 6-6 6"/>`)
+	iconSidebar      = sidebarIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16"/><path d="M5.5 8.5h1.75M5.5 12h1.75M5.5 15.5h1.75"/>`)
 )
 
+// sidebarIcon draws an icon of the sidebar, its shapes filling their box so
+// they read as large as the file lists' icons beside them: the artwork is drawn
+// in a 24 DIP box, which the view box trims to show it a fifth larger.
 func sidebarIcon(shapes string) *ui.SVG {
-	return ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">` + shapes + `</svg>`))
+	return ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.9 1.9 20.2 20.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">` + shapes + `</svg>`))
+}
+
+// sidebarItemFont is the font of the sidebar's items, which list the same
+// folders as the file rows beside them and read as large: the file lists'
+// font, so that changing it changes the sidebar too.
+func (a *app) sidebarItemFont() fontSetting { return a.fonts.Files }
+
+// sidebarTitleFont is the font of a section's title, a step under the items'.
+func (a *app) sidebarTitleFont() fontSetting {
+	f := a.fonts.Files
+	f.Size--
+	return f
+}
+
+// titleStripHeight is the height of the strip beside the traffic lights, which
+// drags the window.
+func titleStripHeight(c *ui.Context) float32 {
+	return max(c.TitleBar().Height, 28)
+}
+
+// sidebarToggle draws the button that folds the sidebar away, or brings it
+// back, as a sidebar with its items beside it.
+func (a *app) sidebarToggle(c *ui.Context, tooltip string) {
+	theme := c.Theme()
+	button := ui.ButtonBase(c).Label(tooltip).Tooltip(tooltip).Padding(theme.Space(1.5)).Radius(theme.Radius * 2)
+	if button.Hovered() {
+		button.Background(theme.SurfaceHover)
+	}
+	button.Children(func() {
+		ui.Icon(c, iconSidebar).Size(15, 15).TextColor(theme.TextMuted)
+	}).OnClick(a.toggleSidebar)
+}
+
+// toggleSidebar hides the sidebar, giving its room to the panes over a moment,
+// or shows it again at the width it had.
+func (a *app) toggleSidebar() {
+	a.sidebarHidden, a.sidebarFolding = !a.sidebarHidden, true
+	a.persistSettings(true)
+}
+
+// foldSidebar moves the width the sidebar is laid out at to its own, or to
+// nothing while it is hidden, easing out: e is the frame's root, whose state
+// keeps the value. While no fold is on its way the divider owns that width, and
+// the width the sidebar rests at follows it.
+func (a *app) foldSidebar(e ui.Element) {
+	if !a.sidebarFolding {
+		if a.sidebarHidden {
+			a.sidebarShown = 0
+		} else {
+			a.sidebarShown = max(a.sidebarShown, minSidebarWidth)
+			a.sidebarWidth = a.sidebarShown
+		}
+		// Where a fold would start from.
+		e.Jump("sidebar", a.sidebarShown)
+		return
+	}
+	target := a.sidebarWidth
+	if a.sidebarHidden {
+		target = 0
+	}
+	a.sidebarShown = e.AnimateTo("sidebar", target, ui.Animation{Duration: sidebarFoldTime, Ease: ui.EaseInOut})
+	if d := a.sidebarShown - target; d > -0.5 && d < 0.5 {
+		a.sidebarShown, a.sidebarFolding = target, false
+	}
 }
 
 // clampSidebarWidth keeps the sidebar readable: the split beside it stops the
@@ -45,24 +119,31 @@ func (a *app) sidebarView(c *ui.Context) {
 	if !a.light {
 		background = ui.Hex("#1b2229")
 	}
-	bar := c.TitleBar()
-	ui.Column(c).Fill().Background(background).Children(func() {
-		// The traffic lights sit over this strip, as Tilde's sidebar holds them.
-		ui.Box(c).Height(max(bar.Height, 28)).DragWindow()
-		ui.Text(c, "Twintrail").FontSize(15).Bold().Padding(10, 12).TextColor(theme.Text)
+	column := ui.Column(c).Fill().Width(a.sidebarWidth).Background(background)
+	column.Translate(a.sidebarShown-a.sidebarWidth, 0)
+	column.Children(func() {
+		// The traffic lights sit over this strip, as Tilde's sidebar holds them,
+		// and the button at its right folds the sidebar away.
+		ui.Row(c).Height(titleStripHeight(c)).AlignItems(ui.Center).Children(func() {
+			ui.Box(c).Height(titleStripHeight(c)).Grow(1).DragWindow()
+			a.sidebarToggle(c, "Hide Sidebar")
+		})
+		title := a.fonts.Files
+		title.Size += 3
+		title.apply(ui.Text(c, "Twintrail")).Bold().Padding(10, 12).TextColor(theme.Text)
 		sidebar := ui.Sidebar(c, &a.sidebarSelection, func() {
 			// The Workspaces header carries a + of its own, so it is a row
 			// rather than a SidebarSection, whose header has no room for
 			// one.
 			ui.Row(c).AlignItems(ui.Center).Padding(theme.Space(1), theme.Space(2)).Children(func() {
-				ui.Text(c, "Workspaces").FontSize(theme.FontSize - 1).FontWeight(600).TextColor(theme.TextMuted).Grow(1)
+				a.sidebarTitleFont().apply(ui.Text(c, "Workspaces")).FontWeight(600).TextColor(theme.TextMuted).Grow(1)
 				ui.ButtonBase(c).Label("New Workspace").Tooltip("New Workspace").Padding(theme.Space(0.5)).Radius(theme.Radius).Children(func() {
 					ui.Icon(c, iconNewWorkspace).Size(12, 12).TextColor(theme.TextMuted)
 				}).OnClick(a.createWorkspace)
 			})
 			for i := range a.workspaces {
 				id := workspaceItemID(i)
-				ui.SidebarItem(c, id, iconWorkspace, a.workspaces[i].Name).OnClick(func() { a.chooseSidebarItem(id) }).ContextMenu(func(m *ui.Menu) {
+				a.sidebarItemFont().apply(ui.SidebarItem(c, id, iconWorkspace, a.workspaces[i].Name)).OnClick(func() { a.chooseSidebarItem(id) }).ContextMenu(func(m *ui.Menu) {
 					if m.Item("Rename Workspace…").Chosen() {
 						a.deferAction(c, func() { a.renameWorkspace(i) })
 					}
@@ -74,7 +155,7 @@ func (a *app) sidebarView(c *ui.Context) {
 			a.sidebarSection(c, "Favorites", &a.favoritesOpen, func() {
 				for _, item := range a.favorites {
 					item := item
-					ui.SidebarItem(c, "favorite:"+item.Path, favoriteIcon(item), item.Name).OnClick(func() { a.navigateTo(item.Path) }).ContextMenu(func(m *ui.Menu) {
+					a.sidebarItemFont().apply(ui.SidebarItem(c, "favorite:"+item.Path, favoriteIcon(item), item.Name)).OnClick(func() { a.navigateTo(item.Path) }).ContextMenu(func(m *ui.Menu) {
 						if m.Item("Remove from Favorites").Chosen() {
 							a.deferAction(c, func() { a.removeFavorite(item.Path) })
 						}
@@ -85,7 +166,7 @@ func (a *app) sidebarView(c *ui.Context) {
 				a.sidebarSection(c, "Recents", &a.recentsOpen, func() {
 					for _, path := range a.recents {
 						path := path
-						ui.SidebarItem(c, "recent:"+path, iconFolder, displayName(path)).OnClick(func() { a.navigateTo(path) }).ContextMenu(func(m *ui.Menu) {
+						a.sidebarItemFont().apply(ui.SidebarItem(c, "recent:"+path, iconFolder, displayName(path))).OnClick(func() { a.navigateTo(path) }).ContextMenu(func(m *ui.Menu) {
 							if m.Item("Remove from Recents").Chosen() {
 								a.deferAction(c, func() { a.removeRecent(path) })
 							}
@@ -97,7 +178,7 @@ func (a *app) sidebarView(c *ui.Context) {
 				a.sidebarSection(c, "Locations", &a.locationsOpen, func() {
 					for _, item := range a.locations {
 						item := item
-						ui.SidebarItem(c, "location:"+item.Path, locationIcon(item), item.Name).OnClick(func() { a.navigateTo(item.Path) })
+						a.sidebarItemFont().apply(ui.SidebarItem(c, "location:"+item.Path, locationIcon(item), item.Name)).OnClick(func() { a.navigateTo(item.Path) })
 					}
 				})
 			}
@@ -117,7 +198,7 @@ func (a *app) sidebarSection(c *ui.Context, title string, open *bool, items func
 	ui.Column(c).Gap(theme.Space(0.5)).Shrink(0).Margin(theme.Space(3), 0, 0, 0).Children(func() {
 		head := ui.Row(c).AlignItems(ui.Center).Padding(theme.Space(1), theme.Space(2)).Radius(theme.Radius)
 		head.OnClick(toggle).Children(func() {
-			ui.Text(c, title).FontSize(theme.FontSize - 1).FontWeight(600).TextColor(theme.TextMuted).Grow(1)
+			a.sidebarTitleFont().apply(ui.Text(c, title)).FontWeight(600).TextColor(theme.TextMuted).Grow(1)
 			action := "Collapse " + title
 			turn := float32(90)
 			if !*open {

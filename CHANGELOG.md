@@ -4,6 +4,13 @@
 
 - The sidebar's right edge drags to resize it, as the line between the panes
   does; it keeps a readable width, and the app remembers it.
+- The sidebar's items read at the size of the file rows beside them, and follow
+  the File font setting; the icons of the sidebar fill their box likewise, a
+  step larger than before.
+- A button at the top of the sidebar, drawn as a sidebar, folds it away over a
+  moment: its items slide out from under the panes while their room grows, and
+  the button in their strip brings it back at the width it had. The window
+  opens as it was left.
 - Favorites, Recents and Locations carry a button at the right of their
   headers that shows and hides their items, turning as it does; a click on
   the header does the same, and a collapsed section stays collapsed.
