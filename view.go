@@ -114,7 +114,7 @@ func (a *app) view(c *ui.Context) {
 func (a *app) paneView(c *ui.Context, index int) {
 	p := &a.panes[index]
 	t := p.tabs[p.current]
-	theme := c.Theme()
+	theme, colors := c.Theme(), a.colors()
 	active := a.active == index
 	c.Key(fmt.Sprintf("pane-%d", index))
 	ui.Column(c).Fill().Gap(0).Disabled(a.modal != nil).Children(func() {
@@ -122,19 +122,9 @@ func (a *app) paneView(c *ui.Context, index int) {
 			tabHeight := max(fontHeight(a.fonts.Tabs, 24), fontHeight(a.fonts.VirtualTabs, 24))
 			ui.Row(c).Height(tabHeight).Gap(1).Background(theme.Border).Border(1, theme.Border).BorderWidth(0, 0, 1, 0).Children(func() {
 				for i, tab := range p.tabs {
-					bg := ui.Hex("#1e252c")
-					foreground := ui.Hex("#787f87")
+					bg, foreground := colors.strip, colors.muted
 					if i == p.current && active {
-						bg = ui.Hex("#252d36")
-						foreground = ui.Hex("#aab1b9")
-					}
-					if a.light {
-						bg = theme.Surface
-						foreground = theme.TextMuted
-						if i == p.current && active {
-							bg = theme.Background
-							foreground = theme.Text
-						}
+						bg, foreground = colors.window, colors.text
 					}
 					tabFont := a.fonts.Tabs
 					if i == p.current {
@@ -184,10 +174,7 @@ func (a *app) paneView(c *ui.Context, index int) {
 				ui.ButtonBase(c).PaddingX(3).Children(func() { ui.Text(c, part).TextColor(theme.TextMuted) }).OnClick(func() { a.active = index; a.load(t, path) })
 			}
 		})
-		header := headerBackground
-		if a.light {
-			header = theme.Surface
-		}
+		header := colors.strip
 		sizeWidth := max(float32(80), float32(a.fonts.Files.Size)*6.7)
 		modifiedWidth := max(float32(136), float32(a.fonts.Files.Size)*11.5)
 		rowHeight := fontHeight(a.fonts.Files, fileRowHeight)
@@ -210,31 +197,31 @@ func (a *app) paneView(c *ui.Context, index int) {
 		t.list.Label = func(i int) string { return es[i].name }
 		c.Key(fmt.Sprintf("files-%d-%d", index, p.current))
 		ui.List(c, &t.list, len(es)).Grow(1).FocusRing(false).Draw(func(p *ui.Painter, r ui.Rect) {
-			alternate := rowAlternate
-			if a.light {
-				alternate = theme.Surface
-			}
+			alternate := colors.rowAlt
 			for y := float32(0); y < r.H; y += rowHeight * 2 {
 				p.Fill(ui.Rect{X: r.X, Y: r.Y + y + rowHeight, W: r.W, H: min(rowHeight, max(0, r.H-y-rowHeight))}, alternate, 0)
 			}
 		}).FocusBind(&a.focus, index+1).ItemKey(func(i int) any { return es[i].name }).Rows(func(r ui.ListRow) {
 			e := es[r.Index]
-			bg := theme.Background
+			bg := colors.window
 			if r.Index%2 == 1 {
-				bg = rowAlternate
-				if a.light {
-					bg = theme.Surface
-				}
+				bg = colors.rowAlt
 			}
 			if r.Selected() && active {
 				bg = theme.Accent
 			}
-			color := theme.Text
-			if t.marked[e.name] {
-				color = ui.Hex("#e6bc75")
+			// A chosen row takes the accent's colors, its columns included.
+			color, muted := colors.text, theme.TextMuted
+			if r.Selected() && active {
+				muted = colors.accentText.Alpha(0.8)
+			}
+			// A marked name keeps the amber, unless the row is chosen: the
+			// accent says which row the keys act on, as it does in Finder.
+			if t.marked[e.name] && !(r.Selected() && active) {
+				color = colors.mark
 			}
 			a.fonts.Files.apply(ui.Row(c).Height(rowHeight).Background(bg).AlignItems(ui.Center)).Children(func() {
-				ui.Row(c).Grow(1).PaddingX(4).Gap(4).AlignItems(ui.Center).Children(func() { fileIcon(c, e); ui.Text(c, e.name).TextColor(color).Grow(1).MinWidth(0).SingleLine() })
+				ui.Row(c).Grow(1).PaddingX(4).Gap(4).AlignItems(ui.Center).Children(func() { a.fileIcon(c, e); ui.Text(c, e.name).TextColor(color).Grow(1).MinWidth(0).SingleLine() })
 				size := martaSize(e.size)
 				if e.dir {
 					size = "--"
@@ -242,12 +229,12 @@ func (a *app) paneView(c *ui.Context, index int) {
 				if e.name == ".." {
 					size = ""
 				}
-				ui.Text(c, size).Width(sizeWidth).PaddingX(4).TextAlign(ui.End).TextColor(theme.TextMuted)
+				ui.Text(c, size).Width(sizeWidth).PaddingX(4).TextAlign(ui.End).TextColor(muted)
 				date := modifiedText(e.modified)
 				if e.name == ".." {
 					date = ""
 				}
-				ui.Text(c, date).Width(modifiedWidth).PaddingX(4).TextColor(theme.TextMuted).SingleLine()
+				ui.Text(c, date).Width(modifiedWidth).PaddingX(4).TextColor(muted).SingleLine()
 			}).ContextMenu(func(m *ui.Menu) { a.fileMenu(c, m, index, r.Index) })
 		}).OnClick(func() { a.active = index; a.focus = index + 1 }).OnChange(func() { a.active = index }).OnSubmit(func() { a.active = index; a.open() }).OnShortcut(0, ui.KeyBackspace, func() { a.active = index; a.load(t, filepath.Dir(t.path)) }).OnShortcut(0, ui.KeySpace, func() {
 			a.active = index
@@ -271,10 +258,7 @@ func (a *app) paneView(c *ui.Context, index int) {
 			c.Key(fmt.Sprintf("search-%d", index))
 			ui.TextInput(c, &t.filter).Height(24).Placeholder("Quick search").Label(fmt.Sprintf("Quick search %d", index)).Focus().OnChange(func() { a.active = index; t.cursor = 0 })
 		}
-		footer := footerBackground
-		if a.light {
-			footer = theme.Surface
-		}
+		footer := colors.strip
 		a.fonts.StatusBar.apply(ui.Row(c).Height(fontHeight(a.fonts.StatusBar, 22)).PaddingX(4).Gap(4).AlignItems(ui.Center).Background(footer).Border(1, theme.Border).BorderWidth(1, 0, 0, 0)).Children(func() {
 			ui.Text(c, tabSummary(t)).Grow(1).MinWidth(0).SingleLine().TextColor(theme.TextMuted)
 			if t.hidden {
@@ -349,7 +333,7 @@ func (a *app) dialogView(c *ui.Context) {
 	}
 	c.Key(fmt.Sprintf("dialog-%p", d))
 	ui.DialogBase(c, &d.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(ui.Hex("#00000055"))
+		backdrop.Background(a.colors().scrim)
 		panelWidth := float32(440)
 		if d.kind == "Preference" {
 			panelWidth = 660

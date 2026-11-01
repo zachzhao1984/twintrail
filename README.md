@@ -17,6 +17,13 @@ A macOS native dual-pane file manager built on Go and myGO v0.7.3. Fully native 
 - Copy preserves symlinks, refuses to overwrite an existing target, and refuses to copy or move a directory into itself. Cross-volume moves currently show an error and do not fall back to copy and delete.
 - Open with the system default application, Quick Look preview, reveal in Finder, external Terminal, native context menu. The search box is hidden by default, shown with ⌘F or /. Copy Path writes the absolute paths of the marked entries to the pasteboard, one per line, each quoted so pasting into a terminal is safe.
 
+## Appearance
+
+The app is drawn in a light and a dark appearance, both built on one blue
+accent: graphite panes in the dark look, white ones in the light, with the
+sidebar, bands, rows and the terminal following. **View → Appearance** (Light
+or Dark) switches them; the choice is saved with the window state.
+
 ## Sidebar and workspaces
 
 A Finder-style sidebar sits to the left of the panes, in the manner of Tilde:

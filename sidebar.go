@@ -115,10 +115,7 @@ func (a *app) clampSidebarWidth() {
 
 func (a *app) sidebarView(c *ui.Context) {
 	theme := c.Theme()
-	background := theme.Surface
-	if !a.light {
-		background = ui.Hex("#1b2229")
-	}
+	background := a.colors().sidebar
 	column := ui.Column(c).Fill().Width(a.sidebarWidth).Background(background)
 	column.Translate(a.sidebarShown-a.sidebarWidth, 0)
 	column.Children(func() {

@@ -216,3 +216,47 @@ func TestKeyboard(t *testing.T) {
 		t.Fatal("tab close failed")
 	}
 }
+
+// TestAppearanceSwitchesLook checks the View menu's appearance choice, which
+// draws the window in the other look at once and keeps it in the session.
+func TestAppearanceSwitchesLook(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	a.light = false
+	m := a.applicationMenu()
+	light, dark := m.ItemByID("appearance-light"), m.ItemByID("appearance-dark")
+	if light == nil || dark == nil {
+		t.Fatal("the View menu has no appearance choice")
+	}
+	if light.Type != mygo.MenuItemRadio || dark.Type != mygo.MenuItemRadio {
+		t.Fatalf("appearance items type %q, %q, want radio", light.Type, dark.Type)
+	}
+	if light.Checked || !dark.Checked {
+		t.Fatalf("checked light=%v dark=%v, want the dark look", light.Checked, dark.Checked)
+	}
+	tt := ui.NewTester(a.view, 600, 400)
+	tt.Frame()
+	brightness := func(x, y int) float64 {
+		r, g, b, _ := tt.Image().At(x, y).RGBA()
+		return float64(r+g+b) / 3 / 256
+	}
+	pane, sidebar := brightness(500, 300), brightness(60, 300)
+	light.Click(light, nil)
+	tt.Frame()
+	if !a.light {
+		t.Fatal("the light look was not chosen")
+	}
+	if got := brightness(500, 300); got <= pane {
+		t.Fatalf("the panes' background is %v, was %v before the light look", got, pane)
+	}
+	if got := brightness(60, 300); got <= sidebar {
+		t.Fatalf("the sidebar's background is %v, was %v before the light look", got, sidebar)
+	}
+	if !a.snapshotSession().Light {
+		t.Fatal("the session does not keep the light look")
+	}
+	m = a.applicationMenu()
+	if !m.ItemByID("appearance-light").Checked || m.ItemByID("appearance-dark").Checked {
+		t.Fatal("the menu does not check the look the window is drawn in")
+	}
+}

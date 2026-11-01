@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- A redesigned pair of appearances, light and dark: one blue accent, graphite
+  panes in the dark look and white ones in the light, and the tabs' band, the
+  header, the status bar, the sidebar, the alternate rows, the marked names and
+  the terminal all take their colors from it. **View → Appearance** picks
+  Light or Dark, and the window opens as it was left.
+
 - The sidebar's right edge drags to resize it, as the line between the panes
   does; it keeps a readable width, and the app remembers it.
 - The sidebar's items read at the size of the file rows beside them, and follow

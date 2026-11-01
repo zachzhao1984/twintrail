@@ -37,8 +37,8 @@ func newTerminal(path string) (terminalSession, error) {
 		return nil, err
 	}
 	theme := terminal.DarkTheme()
-	theme.Background = ui.Hex("#1c232b")
-	theme.Foreground = ui.Hex("#d6dae0")
+	theme.Background = darkPalette.terminal
+	theme.Foreground = darkPalette.terminalText
 	term, err := terminal.New(terminal.Options{Command: []string{"/bin/zsh", "-l"}, Dir: path, Env: bridge.env(), Theme: theme, Font: terminal.Font{Size: 12}, Cursor: terminal.CursorBar})
 	if err != nil {
 		bridge.close()
@@ -157,7 +157,7 @@ func (a *app) terminalView(c *ui.Context) {
 	s := &t.terminal
 	_, height := c.Size()
 	c.Key(fmt.Sprintf("terminal-%p", t))
-	ui.Column(c).Height(min(240, max(120, height*0.4))).Shrink(0).Background(ui.Hex("#1c232b")).Border(1, c.Theme().Border).BorderWidth(1, 0, 0, 0).Children(func() {
+	ui.Column(c).Height(min(240, max(120, height*0.4))).Shrink(0).Background(a.colors().terminal).Border(1, c.Theme().Border).BorderWidth(1, 0, 0, 0).Children(func() {
 		ui.Row(c).Height(24).PaddingX(6).Gap(8).AlignItems(ui.Center).Background(c.Theme().Background).Children(func() {
 			ui.Text(c, "Terminal").Bold()
 			ui.Text(c, t.path).Grow(1).MinWidth(0).SingleLine().TextColor(c.Theme().TextMuted)
@@ -188,7 +188,33 @@ func (a *app) applicationMenu() *mygo.Menu {
 			w.Invalidate()
 		}
 	}}
-	return mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu, Submenu: []*mygo.MenuItem{{Role: mygo.RoleAbout}, updateMenuItem(), mygo.Separator(), a.preferenceMenu(), mygo.Separator(), {Role: mygo.RoleServices}, mygo.Separator(), {Role: mygo.RoleHide}, {Role: mygo.RoleHideOthers}, {Role: mygo.RoleUnhide}, mygo.Separator(), {Role: mygo.RoleQuit}}}, a.applicationFileMenu(), {Role: mygo.RoleEditMenu}, {Label: "View", Submenu: []*mygo.MenuItem{a.terminalMenu, mygo.Separator(), {Role: mygo.RoleToggleFullScreen}}}, {Role: mygo.RoleWindowMenu}})
+	return mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu, Submenu: []*mygo.MenuItem{{Role: mygo.RoleAbout}, updateMenuItem(), mygo.Separator(), a.preferenceMenu(), mygo.Separator(), {Role: mygo.RoleServices}, mygo.Separator(), {Role: mygo.RoleHide}, {Role: mygo.RoleHideOthers}, {Role: mygo.RoleUnhide}, mygo.Separator(), {Role: mygo.RoleQuit}}}, a.applicationFileMenu(), {Role: mygo.RoleEditMenu}, {Label: "View", Submenu: []*mygo.MenuItem{a.appearanceMenu(), mygo.Separator(), a.terminalMenu, mygo.Separator(), {Role: mygo.RoleToggleFullScreen}}}, {Role: mygo.RoleWindowMenu}})
+}
+
+// appearanceMenu builds the View menu's choice between the light and the dark
+// look, the one the window is drawn in checked.
+func (a *app) appearanceMenu() *mygo.MenuItem {
+	choose := func(light bool) func(*mygo.MenuItem, *mygo.Window) {
+		return func(item *mygo.MenuItem, w *mygo.Window) {
+			a.setLight(light)
+			if w != nil {
+				w.Invalidate()
+			}
+		}
+	}
+	return &mygo.MenuItem{Label: "Appearance", Submenu: []*mygo.MenuItem{
+		{ID: "appearance-light", Label: "Light", Type: mygo.MenuItemRadio, Checked: a.light, Click: choose(true)},
+		{ID: "appearance-dark", Label: "Dark", Type: mygo.MenuItemRadio, Checked: !a.light, Click: choose(false)},
+	}}
+}
+
+// setLight draws the window in the light or the dark look, and keeps it so.
+func (a *app) setLight(light bool) {
+	if a.light == light {
+		return
+	}
+	a.light = light
+	a.persistSettings(true)
 }
 
 // fileMenu replaces RoleFileMenu, whose Close Window item owns Cmd+W on
