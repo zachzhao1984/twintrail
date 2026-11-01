@@ -66,6 +66,7 @@ type app struct {
 	active               int
 	focus                int
 	split                float32
+	sidebarWidth         float32
 	lastWidth            float32
 	modal                *dialog
 	status               string
@@ -83,12 +84,15 @@ type app struct {
 	sidebarSelection     string
 	recents              []string
 	favorites            []savedLocation
+	favoritesOpen        bool
 	locations            []savedLocation
+	locationsOpen        bool
+	recentsOpen          bool
 	pending              []func()
 }
 
 func newApp(left, right string) *app {
-	a := &app{fonts: defaultFonts(), split: 550, lastWidth: 1100, focus: 1, status: "Ready"}
+	a := &app{fonts: defaultFonts(), split: 550, sidebarWidth: defaultSidebarWidth, lastWidth: 1100, focus: 1, status: "Ready"}
 	for i, p := range []string{left, right} {
 		t := &tab{path: p, marked: map[string]bool{}}
 		a.panes[i] = pane{tabs: []*tab{t}}
@@ -97,7 +101,10 @@ func newApp(left, right string) *app {
 	a.workspaceIndex = 0
 	a.sidebarSelection = workspaceItemID(0)
 	a.favorites = defaultFavorites()
+	a.favoritesOpen = true
 	a.locations = systemLocations()
+	a.locationsOpen = true
+	a.recentsOpen = true
 	return a
 }
 func (a *app) current() *tab { p := &a.panes[a.active]; return p.tabs[p.current] }

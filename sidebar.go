@@ -5,11 +5,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
 
-const sidebarWidth float32 = 210
+const (
+	// defaultSidebarWidth is the width the sidebar starts with; the line
+	// beside it resizes it from there.
+	defaultSidebarWidth float32 = 210
+	// minSidebarWidth keeps the sidebar's items readable when it is dragged
+	// narrow.
+	minSidebarWidth float32 = 120
+)
 
 var (
 	iconWorkspace    = sidebarIcon(`<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>`)
@@ -18,10 +26,17 @@ var (
 	iconFolder       = sidebarIcon(`<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>`)
 	iconCloud        = sidebarIcon(`<path d="M17.5 19a4.5 4.5 0 0 0 .5-9 6 6 0 0 0-11.6 1.6A3.5 3.5 0 0 0 6.5 19z"/>`)
 	iconDrive        = sidebarIcon(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15h18"/><path d="M7 18h.01M11 18h.01"/>`)
+	iconChevron      = sidebarIcon(`<path d="m9 6 6 6-6 6"/>`)
 )
 
 func sidebarIcon(shapes string) *ui.SVG {
 	return ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">` + shapes + `</svg>`))
+}
+
+// clampSidebarWidth keeps the sidebar readable: the split beside it stops the
+// pointer later, at a width that shows little of an item.
+func (a *app) clampSidebarWidth() {
+	a.sidebarWidth = max(a.sidebarWidth, minSidebarWidth)
 }
 
 func (a *app) sidebarView(c *ui.Context) {
@@ -31,7 +46,7 @@ func (a *app) sidebarView(c *ui.Context) {
 		background = ui.Hex("#1b2229")
 	}
 	bar := c.TitleBar()
-	ui.Column(c).Width(sidebarWidth).Shrink(0).AlignSelf(ui.Stretch).Background(background).Border(1, theme.Border).BorderWidth(0, 1, 0, 0).Children(func() {
+	ui.Column(c).Fill().Background(background).Children(func() {
 		// The traffic lights sit over this strip, as Tilde's sidebar holds them.
 		ui.Box(c).Height(max(bar.Height, 28)).DragWindow()
 		ui.Text(c, "Twintrail").FontSize(15).Bold().Padding(10, 12).TextColor(theme.Text)
@@ -56,7 +71,7 @@ func (a *app) sidebarView(c *ui.Context) {
 					}
 				})
 			}
-			ui.SidebarSection(c, "Favorites", nil, func() {
+			a.sidebarSection(c, "Favorites", &a.favoritesOpen, func() {
 				for _, item := range a.favorites {
 					item := item
 					ui.SidebarItem(c, "favorite:"+item.Path, favoriteIcon(item), item.Name).OnClick(func() { a.navigateTo(item.Path) }).ContextMenu(func(m *ui.Menu) {
@@ -67,7 +82,7 @@ func (a *app) sidebarView(c *ui.Context) {
 				}
 			})
 			if len(a.recents) > 0 {
-				ui.SidebarSection(c, "Recents", nil, func() {
+				a.sidebarSection(c, "Recents", &a.recentsOpen, func() {
 					for _, path := range a.recents {
 						path := path
 						ui.SidebarItem(c, "recent:"+path, iconFolder, displayName(path)).OnClick(func() { a.navigateTo(path) }).ContextMenu(func(m *ui.Menu) {
@@ -79,7 +94,7 @@ func (a *app) sidebarView(c *ui.Context) {
 				})
 			}
 			if len(a.locations) > 0 {
-				ui.SidebarSection(c, "Locations", nil, func() {
+				a.sidebarSection(c, "Locations", &a.locationsOpen, func() {
 					for _, item := range a.locations {
 						item := item
 						ui.SidebarItem(c, "location:"+item.Path, locationIcon(item), item.Name).OnClick(func() { a.navigateTo(item.Path) })
@@ -88,6 +103,35 @@ func (a *app) sidebarView(c *ui.Context) {
 			}
 		})
 		sidebar.Grow(1).Background(background)
+	})
+}
+
+// sidebarSection builds a section of the sidebar whose header always shows a
+// button at its right, which shows and hides the section's items and points
+// down while they show. A framework SidebarSection shows its arrow only while
+// the pointer rests on the title, so a section the user collapsed would look
+// like an empty one. A click on the title shows and hides the items too.
+func (a *app) sidebarSection(c *ui.Context, title string, open *bool, items func()) {
+	theme := c.Theme()
+	toggle := func() { *open = !*open }
+	ui.Column(c).Gap(theme.Space(0.5)).Shrink(0).Margin(theme.Space(3), 0, 0, 0).Children(func() {
+		head := ui.Row(c).AlignItems(ui.Center).Padding(theme.Space(1), theme.Space(2)).Radius(theme.Radius)
+		head.OnClick(toggle).Children(func() {
+			ui.Text(c, title).FontSize(theme.FontSize - 1).FontWeight(600).TextColor(theme.TextMuted).Grow(1)
+			action := "Collapse " + title
+			turn := float32(90)
+			if !*open {
+				action, turn = "Expand "+title, 0
+			}
+			button := ui.ButtonBase(c).Label(action).Tooltip(action).Padding(theme.Space(1)).Radius(theme.Radius)
+			turn = button.Animate("open", turn, 150*time.Millisecond)
+			button.Children(func() {
+				ui.Icon(c, iconChevron).Size(12, 12).TextColor(theme.TextMuted).Rotate(turn)
+			}).OnClick(toggle)
+		})
+		if *open {
+			items()
+		}
 	})
 }
 

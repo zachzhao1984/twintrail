@@ -31,6 +31,7 @@ type session struct {
 	Active       int
 	Split        float32
 	Width        float32
+	SidebarWidth float32 `json:"sidebarWidth,omitempty"`
 	Light        bool
 	Fonts        fontSettings      `json:"fonts"`
 	Workspaces   []workspaceLayout `json:"workspaces,omitempty"`
@@ -38,6 +39,10 @@ type session struct {
 	Recents      []string          `json:"recents,omitempty"`
 	Favorites    []savedLocation   `json:"favorites,omitempty"`
 	FavoritesSet bool              `json:"favoritesSet,omitempty"`
+	// The sidebar sections the user collapsed, open by default.
+	FavoritesCollapsed bool `json:"favoritesCollapsed,omitempty"`
+	RecentsCollapsed   bool `json:"recentsCollapsed,omitempty"`
+	LocationsCollapsed bool `json:"locationsCollapsed,omitempty"`
 }
 
 func sessionPath() string {
@@ -75,9 +80,15 @@ func (a *app) restore() {
 	if s.Width > 0 {
 		a.lastWidth = s.Width
 	}
+	if s.SidebarWidth > 0 {
+		a.sidebarWidth = s.SidebarWidth
+		a.clampSidebarWidth()
+	}
 	if s.FavoritesSet || len(s.Favorites) > 0 {
 		a.favorites = existingLocations(s.Favorites)
 	}
+	a.favoritesOpen, a.recentsOpen = !s.FavoritesCollapsed, !s.RecentsCollapsed
+	a.locationsOpen = !s.LocationsCollapsed
 	a.recents = existingPaths(s.Recents)
 	if len(s.Workspaces) > 0 {
 		a.workspaces = append([]workspaceLayout(nil), s.Workspaces...)
@@ -101,9 +112,11 @@ func (a *app) snapshotSession() session {
 		workspaces[a.workspaceIndex] = workspaceLayout{Name: workspaces[a.workspaceIndex].Name, Panes: panes, Active: active, Split: split}
 	}
 	return session{
-		Panes: panes, Active: active, Split: split, Width: a.lastWidth, Light: a.light, Fonts: a.fonts,
+		Panes: panes, Active: active, Split: split, Width: a.lastWidth, SidebarWidth: a.sidebarWidth,
+		Light: a.light, Fonts: a.fonts,
 		Workspaces: workspaces, Workspace: a.workspaceIndex, Recents: a.recents, Favorites: a.favorites,
-		FavoritesSet: true,
+		FavoritesSet: true, FavoritesCollapsed: !a.favoritesOpen, RecentsCollapsed: !a.recentsOpen,
+		LocationsCollapsed: !a.locationsOpen,
 	}
 }
 func saveSession(s session) {

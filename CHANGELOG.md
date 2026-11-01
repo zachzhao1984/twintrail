@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The sidebar's right edge drags to resize it, as the line between the panes
+  does; it keeps a readable width, and the app remembers it.
+- Favorites, Recents and Locations carry a button at the right of their
+  headers that shows and hides their items, turning as it does; a click on
+  the header does the same, and a collapsed section stays collapsed.
 - A Finder-style sidebar with Workspaces, Favorites, Recents and system
   Locations. Workspaces remember the tabs in both panes, the current tab, the
   active pane and the split position; the **+** beside the Workspaces header

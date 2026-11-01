@@ -323,3 +323,125 @@ func TestSessionKeepsLegacyPanes(t *testing.T) {
 		t.Fatal("legacy pane snapshot lost")
 	}
 }
+
+// TestSidebarResizesByDrag drags the line beside the sidebar, which widens it,
+// and keeps a width the items read in when it is dragged far left.
+func TestSidebarResizesByDrag(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	tt := ui.NewTester(a.view, 1100, 720)
+	start := a.sidebarWidth
+	line, y := start+1, float32(400)
+	tt.Press(line, y)
+	tt.Frame()
+	tt.Move(line+90, y)
+	tt.Frame()
+	tt.Release(line+90, y)
+	tt.Frame()
+	if want := start + 90; a.sidebarWidth < want-2 || a.sidebarWidth > want+2 {
+		t.Fatalf("sidebar width = %v, want about %v", a.sidebarWidth, want)
+	}
+	// Its items keep room to read: the line stops at the least width.
+	line = a.sidebarWidth + 1
+	tt.Press(line, y)
+	tt.Frame()
+	tt.Move(5, y)
+	tt.Frame()
+	tt.Release(5, y)
+	tt.Frame()
+	if a.sidebarWidth != minSidebarWidth {
+		t.Fatalf("sidebar width = %v, want %v", a.sidebarWidth, minSidebarWidth)
+	}
+}
+
+// TestSidebarWidthSaved checks the sidebar keeps its width across launches, and
+// that a width too narrow to read comes back at the least one.
+func TestSidebarWidthSaved(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	a := fixture(t)
+	for _, want := range []float32{268, 10} {
+		a.sidebarWidth = want
+		data, err := json.Marshal(a.snapshotSession())
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(home, "Library", "Application Support", "Twintrail", "session.json")
+		if err = os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err = os.WriteFile(path, data, 0600); err != nil {
+			t.Fatal(err)
+		}
+		b := newApp(a.panes[0].tabs[0].path, a.panes[1].tabs[0].path)
+		b.restore()
+		if got := max(want, minSidebarWidth); b.sidebarWidth != got {
+			t.Fatalf("sidebar width restored as %v, want %v", b.sidebarWidth, got)
+		}
+	}
+}
+
+// TestSidebarSectionsCollapse checks the button at the right of the Favorites,
+// Recents and Locations headers hides and shows their items, as does a click on
+// the title, and that a collapsed section comes back collapsed.
+func TestSidebarSectionsCollapse(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	dir := a.panes[0].tabs[0].path
+	if err := os.Mkdir(filepath.Join(dir, "Recent Folder"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	a.recents = []string{filepath.Join(dir, "Recent Folder")}
+	a.favorites = []savedLocation{{Name: "Marked", Path: dir}}
+	a.locations = []savedLocation{{Name: "Mounted Disk", Path: dir}}
+	tt := ui.NewTester(a.view, 1100, 720)
+	if err := tt.Click("Collapse Favorites"); err != nil {
+		t.Fatalf("%v (labels %v)", err, tt.Texts())
+	}
+	tt.Frame()
+	if a.favoritesOpen || !tt.HasText("Favorites") || tt.HasText("Marked") {
+		t.Fatalf("favorites not collapsed: open=%v texts=%v", a.favoritesOpen, tt.Texts())
+	}
+	if err := tt.Click("Expand Favorites"); err != nil {
+		t.Fatalf("%v (labels %v)", err, tt.Texts())
+	}
+	tt.Frame()
+	if !a.favoritesOpen || !tt.HasText("Marked") {
+		t.Fatalf("favorites not shown: open=%v texts=%v", a.favoritesOpen, tt.Texts())
+	}
+	// A click on the header's title does the same, as a framework section's.
+	if err := tt.Click("Recents"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.recentsOpen || tt.HasText("Recent Folder") {
+		t.Fatalf("recents not collapsed: open=%v texts=%v", a.recentsOpen, tt.Texts())
+	}
+	if err := tt.Click("Collapse Locations"); err != nil {
+		t.Fatalf("%v (labels %v)", err, tt.Texts())
+	}
+	tt.Frame()
+	if a.locationsOpen || !tt.HasText("Locations") || tt.HasText("Mounted Disk") {
+		t.Fatalf("locations not collapsed: open=%v texts=%v", a.locationsOpen, tt.Texts())
+	}
+	// The collapsed sections are remembered.
+	data, err := json.Marshal(a.snapshotSession())
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(home, "Library", "Application Support", "Twintrail", "session.json")
+	if err = os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	b := newApp(dir, dir)
+	b.restore()
+	if b.recentsOpen || !b.favoritesOpen || b.locationsOpen {
+		t.Fatalf("sections restored open=%v/%v/%v, want false/true/false",
+			b.favoritesOpen, b.recentsOpen, b.locationsOpen)
+	}
+}

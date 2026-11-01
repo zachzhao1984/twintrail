@@ -26,9 +26,11 @@ A Finder-style sidebar sits to the left of the panes, in the manner of Tilde:
   current tab, the active pane and the split position. Switching workspaces
   restores that layout; the layout being left is recorded first. Right-click a
   workspace to rename or delete it; the last workspace cannot be deleted.
-- **Favorites** starts with Home, Desktop, Documents and Downloads.
+- **Favorites** starts with Home, Desktop, Documents and Downloads. The
+  sidebar's right edge drags to resize it, and the width is remembered.
 - **Recents** keeps the last eight folders visited in either pane, newest
-  first.
+  first. The button at the right of the Favorites, Recents and Locations
+  headers, or a click on the header itself, shows and hides its items.
 - **Locations** lists iCloud Drive when present, the home folder and the
   mounted volumes.
 

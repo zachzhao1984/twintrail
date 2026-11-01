@@ -9,8 +9,9 @@ import (
 
 func (a *app) view(c *ui.Context) {
 	a.runPending()
+	a.clampSidebarWidth()
 	width, _ := c.Size()
-	contentWidth := width - sidebarWidth
+	contentWidth := width - a.sidebarWidth
 	if contentWidth > 0 && a.lastWidth > 0 && contentWidth != a.lastWidth {
 		a.split *= contentWidth / a.lastWidth
 	}
@@ -23,9 +24,10 @@ func (a *app) view(c *ui.Context) {
 	c.SetTheme(theme)
 	ui.Column(c).Fill().Gap(0).Background(theme.Background).Children(func() {
 		bar := c.TitleBar()
-		ui.Row(c).Fill().Gap(0).AlignItems(ui.Stretch).Children(func() {
-			a.sidebarView(c)
-			ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+		// The line between the sidebar and the panes resizes the sidebar, as
+		// the line between the panes resizes them.
+		ui.Split(c, &a.sidebarWidth, func() { a.sidebarView(c) }, func() {
+			ui.Column(c).Fill().MinWidth(0).Children(func() {
 				// Keep the drag strip the traffic lights sit beside.
 				ui.Box(c).Height(max(bar.Height, 28)).Background(theme.Background).DragWindow()
 				ui.Split(c, &a.split, func() { a.paneView(c, 0) }, func() { a.paneView(c, 1) }).Grow(1)
@@ -48,7 +50,7 @@ func (a *app) view(c *ui.Context) {
 					a.terminalView(c)
 				}
 			})
-		})
+		}).Fill()
 		if a.modal != nil {
 			a.dialogView(c)
 		}
