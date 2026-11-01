@@ -9,6 +9,12 @@
   Light or Dark, and the window opens as it was left. The system's own parts
   follow it too: the window's buttons, its menus and the panels it opens are
   drawn in the look chosen, where before they took the system's.
+- The line above the terminal drags to resize it, as the lines beside the panes
+  and the sidebar do; the share of the room it takes is remembered.
+- The terminal follows the look as well: its panel, text, cursor and selection
+  take the palette, and so do the sixteen colors programs paint with, whose
+  blue and yellow are the app's accent and mark. A shell that is already
+  running changes with the look, as one started after it opens in it.
 
 - The sidebar's right edge drags to resize it, as the line between the panes
   does; it keeps a readable width, and the app remembers it.

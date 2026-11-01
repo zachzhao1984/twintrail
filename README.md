@@ -22,7 +22,9 @@ A macOS native dual-pane file manager built on Go and myGO v0.7.3. Fully native 
 The app is drawn in a light and a dark appearance, both built on one blue
 accent: graphite panes in the dark look, white ones in the light, with the
 sidebar, bands, rows and the terminal following. **View → Appearance** (Light
-or Dark) switches them; the choice is saved with the window state.
+or Dark) switches them; the choice is saved with the window state. The terminal
+at the bottom of a pane takes the same palette, its blue and yellow being the
+app's accent and mark, and the line above it drags to resize it.
 
 ## Sidebar and workspaces
 

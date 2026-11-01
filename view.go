@@ -28,7 +28,7 @@ func (a *app) view(c *ui.Context) {
 	root := ui.Column(c).Fill().Gap(0).Background(theme.Background)
 	a.foldSidebar(root)
 	root.Children(func() {
-		panes := func() {
+		content := func() {
 			ui.Column(c).Fill().MinWidth(0).Children(func() {
 				// Keep the drag strip the traffic lights sit beside, which holds
 				// the button that brings the sidebar back while it is hidden.
@@ -56,10 +56,16 @@ func (a *app) view(c *ui.Context) {
 						ui.ButtonBase(c).Grow(1).Height(fontHeight(a.fonts.ActionBar, 20)).Background(theme.Surface).Radius(2).PaddingX(5).AlignItems(ui.Center).Justify(ui.Start).Children(func() { ui.Text(c, b.name).TextColor(theme.TextMuted) }).OnClick(b.fn).Disabled(a.busy || a.modal != nil)
 					}
 				})
-				if a.current().terminal.visible {
-					a.terminalView(c)
-				}
 			})
+		}
+		panes := func() {
+			// The line above the terminal resizes it, as the lines beside it
+			// resize the panes and the sidebar.
+			if a.current().terminal.visible {
+				ui.SplitVerticalPercent(c, &a.terminalPercent, content, func() { a.terminalView(c) }).Fill()
+				return
+			}
+			content()
 		}
 		// The line between the sidebar and the panes resizes the sidebar, as
 		// the line between the panes resizes them.

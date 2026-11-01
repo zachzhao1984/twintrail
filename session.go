@@ -32,6 +32,9 @@ type session struct {
 	Split        float32
 	Width        float32
 	SidebarWidth float32 `json:"sidebarWidth,omitempty"`
+	// TerminalPercent is the share of the room above the terminal that the
+	// panes took, as the line above it was left.
+	TerminalPercent float32 `json:"terminalPercent,omitempty"`
 	// SidebarHidden tells the window was left with the sidebar folded away.
 	SidebarHidden bool `json:"sidebarHidden,omitempty"`
 	Light         bool
@@ -87,6 +90,9 @@ func (a *app) restore() {
 		a.clampSidebarWidth()
 	}
 	a.sidebarHidden, a.sidebarShown = s.SidebarHidden, a.sidebarWidth
+	if s.TerminalPercent > 0 {
+		a.terminalPercent = s.TerminalPercent
+	}
 	if a.sidebarHidden {
 		a.sidebarShown = 0
 	}
@@ -124,7 +130,8 @@ func (a *app) snapshotSession() session {
 	}
 	return session{
 		Panes: panes, Active: active, Split: split, Width: a.lastWidth, SidebarWidth: a.sidebarWidth,
-		SidebarHidden: a.sidebarHidden, Light: a.light, Fonts: a.fonts,
+		SidebarHidden: a.sidebarHidden, TerminalPercent: a.terminalPercent,
+		Light: a.light, Fonts: a.fonts,
 		Workspaces: workspaces, Workspace: a.workspaceIndex, Recents: a.recents, Favorites: a.favorites,
 		FavoritesSet: true, FavoritesCollapsed: !a.favoritesFold.open, RecentsCollapsed: !a.recentsFold.open,
 		LocationsCollapsed: !a.locationsFold.open,

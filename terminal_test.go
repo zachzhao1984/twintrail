@@ -17,11 +17,13 @@ type fakeTerminal struct {
 	path   string
 	closed bool
 	font   fontSetting
+	light  bool
 }
 
 func (f *fakeTerminal) View(c *ui.Context) ui.Element             { return ui.Box(c).Focusable().Label("Terminal") }
 func (f *fakeTerminal) SetDir(path string, revision uint64) error { f.path = path; return nil }
 func (f *fakeTerminal) SetFont(font fontSetting)                  { f.font = font }
+func (f *fakeTerminal) SetAppearance(light bool)                  { f.light = light }
 func (f *fakeTerminal) Close() error                              { f.closed = true; return nil }
 func TestTabTerminal(t *testing.T) {
 	a := fixture(t)
@@ -222,5 +224,102 @@ func TestTerminalCreatedAfterWindowClose(t *testing.T) {
 		a.finishTerminals()
 	case <-time.After(time.Second):
 		t.Fatal("startup completion missing")
+	}
+}
+
+// TestTerminalFollowsAppearance checks a shell is drawn in the look the app
+// draws: the one it opens in, and the one the View menu switches to, which the
+// shells already running take with it.
+func TestTerminalFollowsAppearance(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	a.light = false
+	created := []*fakeTerminal{}
+	a.newTerminal = func(path string) (terminalSession, error) {
+		f := &fakeTerminal{path: path}
+		created = append(created, f)
+		return f, nil
+	}
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Key(ui.Cmd, ui.KeyBackquote)
+	tt.Frame()
+	if len(created) != 1 || created[0].light {
+		t.Fatalf("terminals created %d, first light=%v", len(created), created[0].light)
+	}
+	m := a.applicationMenu()
+	light := m.ItemByID("appearance-light")
+	light.Click(light, nil)
+	tt.Frame()
+	if !created[0].light {
+		t.Fatal("the running shell did not take the light look")
+	}
+	// A shell started in the light look opens in it.
+	a.focus = 1
+	a.newTab()
+	tt.Frame()
+	a.toggleTerminal()
+	tt.Frame()
+	if len(created) != 2 || !created[1].light {
+		t.Fatalf("terminals created %d, second light=%v", len(created), created[1].light)
+	}
+}
+
+// TestTerminalTheme checks the shell's colors take the app's: the panel of each
+// look, its accent for the cursor and the blue programs use, and its mark for
+// the yellow.
+func TestTerminalTheme(t *testing.T) {
+	dark, light := terminalTheme(false), terminalTheme(true)
+	brightness := func(c ui.Color) int { return 299*int(c.R) + 587*int(c.G) + 114*int(c.B) }
+	if brightness(dark.Background) >= brightness(light.Background) {
+		t.Fatalf("the dark shell's background %v is not darker than the light one %v", dark.Background, light.Background)
+	}
+	if brightness(dark.Foreground) <= brightness(dark.Background) || brightness(light.Foreground) >= brightness(light.Background) {
+		t.Fatal("a shell's text does not read against its panel")
+	}
+	if dark.Cursor != darkPalette.accent || light.Cursor != lightPalette.accent {
+		t.Fatal("the cursor does not take the app's accent")
+	}
+	if dark.Palette[4] != darkPalette.accent || light.Palette[4] != lightPalette.accent {
+		t.Fatal("programs' blue does not take the app's accent")
+	}
+	if dark.Palette[3] != darkPalette.mark || light.Palette[3] != lightPalette.mark {
+		t.Fatal("programs' yellow does not take the app's mark")
+	}
+}
+
+// TestTerminalResizesByDrag drags the line above the terminal, which gives the
+// terminal more of the room and the panes less, and keeps that share.
+func TestTerminalResizesByDrag(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	a.newTerminal = func(string) (terminalSession, error) { return &fakeTerminal{}, nil }
+	a.current().terminal.visible = true
+	a.ensureTerminal(a.current())
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	before := a.terminalPercent
+	head, ok := tt.Find("Terminal")
+	if !ok {
+		t.Fatalf("no terminal header: %v", tt.Texts())
+	}
+	// The line sits where the split puts it: the panes take their share of the
+	// window's height above the terminal.
+	const window = float32(720)
+	x, line := float32(700), (window-1)*a.terminalPercent/100
+	tt.Press(x, line)
+	tt.Frame()
+	tt.Move(x, line-120)
+	tt.Frame()
+	tt.Release(x, line-120)
+	tt.Frame()
+	if a.terminalPercent >= before {
+		t.Fatalf("panes take %v%% of the room, were %v%%: the terminal did not grow", a.terminalPercent, before)
+	}
+	grown, ok := tt.Find("Terminal")
+	if !ok || grown.Y >= head.Y {
+		t.Fatalf("terminal header at %v, was %v: the panel did not take the room", grown.Y, head.Y)
+	}
+	if got := a.snapshotSession().TerminalPercent; got != a.terminalPercent {
+		t.Fatalf("session keeps %v, want %v", got, a.terminalPercent)
 	}
 }

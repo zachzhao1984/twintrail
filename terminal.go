@@ -8,10 +8,15 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
+// defaultTerminalPercent is the share of the room above the terminal that the
+// panes take, which the line above it moves.
+const defaultTerminalPercent float32 = 60
+
 type terminalSession interface {
 	View(*ui.Context) ui.Element
 	SetDir(string, uint64) error
 	SetFont(fontSetting)
+	SetAppearance(light bool)
 	Close() error
 }
 type tabTerminal struct {
@@ -30,16 +35,33 @@ type nativeTerminal struct {
 
 func (n *nativeTerminal) View(c *ui.Context) ui.Element        { return terminal.View(c, n.term) }
 func (n *nativeTerminal) SetDir(path string, rev uint64) error { return n.bridge.setDir(path, rev) }
-func (n *nativeTerminal) Close() error                         { err := n.term.Close(); n.bridge.close(); return err }
+func (n *nativeTerminal) SetAppearance(light bool) {
+	n.term.SetTheme(terminalTheme(light), terminalTheme(false))
+}
+
+// terminalTheme draws the shell in the look the app draws: the panel behind it,
+// its text, its cursor and what it selects, and the sixteen colors programs
+// paint with, whose blue and yellow are the app's accent and mark, so that a
+// shell reads as part of the window rather than as another app's.
+func terminalTheme(light bool) *terminal.Theme {
+	p, t := darkPalette, terminal.DarkTheme()
+	if light {
+		p, t = lightPalette, terminal.LightTheme()
+	}
+	t.Background, t.Foreground = p.terminal, p.terminalText
+	t.Cursor, t.CursorText = p.accent, p.terminal
+	t.Selection = p.accent.Alpha(0.35)
+	t.Palette[3], t.Palette[11] = p.mark, p.mark
+	t.Palette[4], t.Palette[12] = p.accent, p.accent
+	return t
+}
+func (n *nativeTerminal) Close() error { err := n.term.Close(); n.bridge.close(); return err }
 func newTerminal(path string) (terminalSession, error) {
 	bridge, err := newCWDBridge(path)
 	if err != nil {
 		return nil, err
 	}
-	theme := terminal.DarkTheme()
-	theme.Background = darkPalette.terminal
-	theme.Foreground = darkPalette.terminalText
-	term, err := terminal.New(terminal.Options{Command: []string{"/bin/zsh", "-l"}, Dir: path, Env: bridge.env(), Theme: theme, Font: terminal.Font{Size: 12}, Cursor: terminal.CursorBar})
+	term, err := terminal.New(terminal.Options{Command: []string{"/bin/zsh", "-l"}, Dir: path, Env: bridge.env(), Theme: terminalTheme(false), DarkTheme: terminalTheme(false), Font: terminal.Font{Size: 12}, Cursor: terminal.CursorBar})
 	if err != nil {
 		bridge.close()
 		return nil, err
@@ -95,6 +117,7 @@ func (a *app) ensureTerminal(t *tab) {
 			}
 			s.session = session
 			session.SetFont(a.fonts.Terminal)
+			session.SetAppearance(a.light)
 			a.syncTerminal(t)
 		}
 	})
@@ -155,10 +178,10 @@ func (a *app) closeTerminals() {
 func (a *app) terminalView(c *ui.Context) {
 	t := a.current()
 	s := &t.terminal
-	_, height := c.Size()
 	c.Key(fmt.Sprintf("terminal-%p", t))
-	ui.Column(c).Height(min(240, max(120, height*0.4))).Shrink(0).Background(a.colors().terminal).Border(1, c.Theme().Border).BorderWidth(1, 0, 0, 0).Children(func() {
-		ui.Row(c).Height(24).PaddingX(6).Gap(8).AlignItems(ui.Center).Background(c.Theme().Background).Children(func() {
+	colors := a.colors()
+	ui.Column(c).Fill().Background(colors.terminal).Children(func() {
+		ui.Row(c).Height(24).PaddingX(6).Gap(8).AlignItems(ui.Center).Background(colors.strip).Children(func() {
 			ui.Text(c, "Terminal").Bold()
 			ui.Text(c, t.path).Grow(1).MinWidth(0).SingleLine().TextColor(c.Theme().TextMuted)
 			ui.ButtonBase(c).Label("Close Terminal").Children(func() { ui.Text(c, "×").FontSize(16) }).OnClick(a.toggleTerminal)
@@ -208,6 +231,18 @@ func (a *app) appearanceMenu() *mygo.MenuItem {
 	}}
 }
 
+// applyTerminalAppearance draws the shells that are running in the look the app
+// now draws, as the look changes.
+func (a *app) applyTerminalAppearance() {
+	for i := range a.panes {
+		for _, t := range a.panes[i].tabs {
+			if t.terminal.session != nil {
+				t.terminal.session.SetAppearance(a.light)
+			}
+		}
+	}
+}
+
 // setLight draws the window in the light or the dark look, and keeps it so.
 func (a *app) setLight(light bool) {
 	if a.light == light {
@@ -215,6 +250,7 @@ func (a *app) setLight(light bool) {
 	}
 	a.light = light
 	setSystemAppearance(light)
+	a.applyTerminalAppearance()
 	a.persistSettings(true)
 }
 

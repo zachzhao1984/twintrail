@@ -70,6 +70,7 @@ type app struct {
 	sidebarHidden        bool
 	sidebarFolding       bool
 	sidebarShown         float32
+	terminalPercent      float32
 	lastWidth            float32
 	modal                *dialog
 	status               string
@@ -96,7 +97,7 @@ type app struct {
 }
 
 func newApp(left, right string) *app {
-	a := &app{fonts: defaultFonts(), split: 550, sidebarWidth: defaultSidebarWidth, sidebarShown: defaultSidebarWidth, lastWidth: 1100, focus: 1, status: "Ready"}
+	a := &app{fonts: defaultFonts(), split: 550, sidebarWidth: defaultSidebarWidth, sidebarShown: defaultSidebarWidth, terminalPercent: defaultTerminalPercent, lastWidth: 1100, focus: 1, status: "Ready"}
 	for i, p := range []string{left, right} {
 		t := &tab{path: p, marked: map[string]bool{}}
 		a.panes[i] = pane{tabs: []*tab{t}}
