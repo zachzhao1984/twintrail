@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The file lists' header centers its labels, which the Name cell's baseline
+  layout sat a little high beside the Size and Modified cells.
+
 - A redesigned pair of appearances, light and dark: one blue accent, graphite
   panes in the dark look and white ones in the light, and the tabs' band, the
   header, the status bar, the sidebar, the alternate rows, the marked names and
@@ -9,6 +12,9 @@
   Light or Dark, and the window opens as it was left. The system's own parts
   follow it too: the window's buttons, its menus and the panels it opens are
   drawn in the look chosen, where before they took the system's.
+- The labels of the file table's header sit on one baseline: the Name cell
+  carries the first column with its sort arrow, and the Size and Modified cells
+  line up on it, rather than centering their own boxes.
 - The line above the terminal drags to resize it, as the lines beside the panes
   and the sidebar do; the share of the room it takes is remembered.
 - The terminal follows the look as well: its panel, text, cursor and selection

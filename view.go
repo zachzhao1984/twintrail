@@ -184,7 +184,8 @@ func (a *app) paneView(c *ui.Context, index int) {
 		sizeWidth := max(float32(80), float32(a.fonts.Files.Size)*6.7)
 		modifiedWidth := max(float32(136), float32(a.fonts.Files.Size)*11.5)
 		rowHeight := fontHeight(a.fonts.Files, fileRowHeight)
-		a.fonts.TableHeader.apply(ui.Row(c).Height(fontHeight(a.fonts.TableHeader, 20)).Background(header).Border(1, theme.Border).BorderWidth(1, 0, 1, 0).AlignItems(ui.Stretch)).Children(func() {
+		headerRow := a.fonts.TableHeader.apply(ui.Row(c).Height(fontHeight(a.fonts.TableHeader, 20)).Background(header).Border(1, theme.Border).BorderWidth(1, 0, 1, 0).AlignItems(ui.Center))
+		headerRow.Children(func() {
 			ui.ButtonBase(c).Grow(1).PaddingX(4).Justify(ui.Start).Children(func() {
 				ui.Row(c).Fill().AlignItems(ui.Center).Children(func() {
 					ui.Text(c, "Name").Grow(1).TextColor(theme.TextMuted)
