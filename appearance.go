@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
 
@@ -83,6 +84,18 @@ var folderIcons = loadSystemIcons()
 // cssColor returns c as the "#rrggbb" the window takes before its first frame.
 func cssColor(c ui.Color) string {
 	return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B)
+}
+
+// setSystemAppearance draws the system's own parts in the look the app draws:
+// the window's buttons, its menus and the panels it opens, which AppKit paints
+// by the app's appearance rather than by the theme of the content. It is a
+// variable because a test has no app appearance to set, and replaces it.
+var setSystemAppearance = func(light bool) {
+	if light {
+		mygo.Theme.SetSource(mygo.ThemeLight)
+		return
+	}
+	mygo.Theme.SetSource(mygo.ThemeDark)
 }
 
 // colors picks the colors of the appearance the user chose.

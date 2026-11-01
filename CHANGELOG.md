@@ -6,7 +6,9 @@
   panes in the dark look and white ones in the light, and the tabs' band, the
   header, the status bar, the sidebar, the alternate rows, the marked names and
   the terminal all take their colors from it. **View → Appearance** picks
-  Light or Dark, and the window opens as it was left.
+  Light or Dark, and the window opens as it was left. The system's own parts
+  follow it too: the window's buttons, its menus and the panels it opens are
+  drawn in the look chosen, where before they took the system's.
 
 - The sidebar's right edge drags to resize it, as the line between the panes
   does; it keeps a readable width, and the app remembers it.

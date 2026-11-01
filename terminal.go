@@ -214,6 +214,7 @@ func (a *app) setLight(light bool) {
 		return
 	}
 	a.light = light
+	setSystemAppearance(light)
 	a.persistSettings(true)
 }
 

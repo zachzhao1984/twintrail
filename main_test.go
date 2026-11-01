@@ -217,6 +217,14 @@ func TestKeyboard(t *testing.T) {
 	}
 }
 
+// The system's own appearance, which the app sets as the look changes, needs a
+// running app: a test records it instead.
+var systemAppearances []bool
+
+func init() {
+	setSystemAppearance = func(light bool) { systemAppearances = append(systemAppearances, light) }
+}
+
 // TestAppearanceSwitchesLook checks the View menu's appearance choice, which
 // draws the window in the other look at once and keeps it in the session.
 func TestAppearanceSwitchesLook(t *testing.T) {
@@ -245,6 +253,9 @@ func TestAppearanceSwitchesLook(t *testing.T) {
 	tt.Frame()
 	if !a.light {
 		t.Fatal("the light look was not chosen")
+	}
+	if len(systemAppearances) == 0 || !systemAppearances[len(systemAppearances)-1] {
+		t.Fatalf("the system was not drawn in the light look: %v", systemAppearances)
 	}
 	if got := brightness(500, 300); got <= pane {
 		t.Fatalf("the panes' background is %v, was %v before the light look", got, pane)
