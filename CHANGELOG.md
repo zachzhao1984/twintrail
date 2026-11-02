@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- ⌘⌫ moves the selection to the Trash, as Finder's does: it opens the dialog
+  Move to Trash opens, which the confirmation empties into the Trash.
+
 - The entries' menus gain Open With…, which opens the picker over the entry it
   was opened on, and Compress, which packs the entries into one zip beside the
   first of them, named for it, whose folders walk their entries; an existing

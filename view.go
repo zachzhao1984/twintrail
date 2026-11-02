@@ -108,6 +108,8 @@ func (a *app) view(c *ui.Context) {
 		c.OnShortcut(ui.Cmd, ui.KeyBackquote, a.toggleTerminal)
 		c.OnShortcut(ui.Cmd|ui.Shift, ui.KeyPeriod, func() { t := a.current(); t.hidden = !t.hidden; a.load(t, t.path) })
 		c.OnShortcut(ui.Cmd, ui.KeyR, func() { t := a.current(); a.load(t, t.path) })
+		// Cmd+Backspace moves the selection to the Trash, as Finder's does.
+		c.OnShortcut(ui.Cmd, ui.KeyBackspace, func() { a.ask("Move to Trash") })
 		for _, s := range []struct {
 			key  ui.Key
 			mods ui.Modifiers

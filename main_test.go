@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func fixture(t *testing.T) *app {
@@ -265,5 +266,34 @@ func TestAppearanceSwitchesLook(t *testing.T) {
 	m = a.applicationMenu()
 	if !m.ItemByID("appearance-light").Checked || m.ItemByID("appearance-dark").Checked {
 		t.Fatal("the menu does not check the look the window is drawn in")
+	}
+}
+
+// TestCmdBackspaceTrashes checks Cmd+Backspace opens the Move to Trash dialog
+// over the selection, which confirming trashes.
+func TestCmdBackspaceTrashes(t *testing.T) {
+	a := fixture(t)
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	if a.modal != nil {
+		t.Fatal("a dialog is open before the shortcut")
+	}
+	tt.Key(ui.Cmd, ui.KeyBackspace)
+	tt.Frame()
+	if a.modal == nil || a.modal.kind != "Move to Trash" {
+		t.Fatalf("Cmd+Backspace opened %+v, want Move to Trash", a.modal)
+	}
+	if got, want := a.modal.sources, a.targets(); len(got) != 1 || got[0] != want[0] {
+		t.Fatalf("sources = %v, want the selection %v", got, want)
+	}
+	trashed := a.modal.sources[0]
+	a.confirm()
+	tt.Frame()
+	for a.busy {
+		tt.Advance(time.Second)
+		tt.Frame()
+	}
+	if _, err := os.Stat(trashed); !os.IsNotExist(err) {
+		t.Fatalf("the selection survived the Trash: %v", err)
 	}
 }
