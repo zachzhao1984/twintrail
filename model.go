@@ -70,49 +70,56 @@ type dialog struct {
 	applications []openWithApplication
 	loading      bool
 	err          string
+	// trashItem moves one source into the system's Trash, which the app sets
+	// from its trashItem so that a test without the running app can stand in.
+	trashItem func(string) error
 }
 type app struct {
 	discoverApplications func([]string) ([]openWithApplication, error)
-	loadApplicationIcon  func(string) (*ui.Bitmap, error)
-	applicationLists     map[string]cachedApplications
-	applicationJobs      map[string]bool
-	applicationIcons     map[string]*ui.Bitmap
-	applicationIconJobs  map[string]bool
-	openApplication      func(string, []string)
-	fonts                fontSettings
-	settingsWriter       sessionWriter
-	panes                [2]pane
-	active               int
-	focus                int
-	split                float32
-	sidebarWidth         float32
-	sidebarHidden        bool
-	sidebarFolding       bool
-	sidebarShown         float32
-	terminalPercent      float32
-	lastWidth            float32
-	modal                *dialog
-	status               string
-	busy                 bool
-	light                bool
-	update               func(func())
-	closed               bool
-	newTerminal          func(string) (terminalSession, error)
-	terminalMenu         *mygo.MenuItem
-	closeTabMenu         *mygo.MenuItem
-	terminalJobs         sync.WaitGroup
-	terminalSessions     sync.Map
-	workspaces           []workspaceLayout
-	workspaceIndex       int
-	sidebarSelection     string
-	recents              []string
-	favorites            []savedLocation
-	favoritesFold        sectionFold
-	sidebarItemHeight    float32
-	locations            []savedLocation
-	locationsFold        sectionFold
-	recentsFold          sectionFold
-	pending              []func()
+	// trashItem moves one path into the system's Trash, whose Put Back the
+	// rename into ~/.Trash this replaces cannot serve. The default asks the
+	// app's Shell, which needs the running app; a test replaces it.
+	trashItem           func(string) error
+	loadApplicationIcon func(string) (*ui.Bitmap, error)
+	applicationLists    map[string]cachedApplications
+	applicationJobs     map[string]bool
+	applicationIcons    map[string]*ui.Bitmap
+	applicationIconJobs map[string]bool
+	openApplication     func(string, []string)
+	fonts               fontSettings
+	settingsWriter      sessionWriter
+	panes               [2]pane
+	active              int
+	focus               int
+	split               float32
+	sidebarWidth        float32
+	sidebarHidden       bool
+	sidebarFolding      bool
+	sidebarShown        float32
+	terminalPercent     float32
+	lastWidth           float32
+	modal               *dialog
+	status              string
+	busy                bool
+	light               bool
+	update              func(func())
+	closed              bool
+	newTerminal         func(string) (terminalSession, error)
+	terminalMenu        *mygo.MenuItem
+	closeTabMenu        *mygo.MenuItem
+	terminalJobs        sync.WaitGroup
+	terminalSessions    sync.Map
+	workspaces          []workspaceLayout
+	workspaceIndex      int
+	sidebarSelection    string
+	recents             []string
+	favorites           []savedLocation
+	favoritesFold       sectionFold
+	sidebarItemHeight   float32
+	locations           []savedLocation
+	locationsFold       sectionFold
+	recentsFold         sectionFold
+	pending             []func()
 }
 
 func newApp(left, right string) *app {
@@ -364,6 +371,7 @@ func (a *app) askFor(kind string, sources []string) {
 	a.ask(kind)
 	if a.modal != nil {
 		a.modal.sources = sources
+		a.modal.trashItem = a.trashItem
 	}
 }
 
@@ -438,7 +446,7 @@ func (a *app) trash(paths []string) {
 	a.busy = true
 	a.status = "Move to Trash…"
 	a.job(func() func() {
-		err := perform(&dialog{kind: "Move to Trash", sources: paths})
+		err := perform(&dialog{kind: "Move to Trash", sources: paths, trashItem: a.trashItem})
 		return a.doneTransfer("Move to Trash", err)
 	})
 }
@@ -494,15 +502,22 @@ func perform(d *dialog) error {
 			return fmt.Errorf("Destination already exists: %s", zipPath)
 		}
 		return writeZip(zipPath, d.sources)
-	case "Copy", "Move", "Move to Trash":
-		target := d.value
-		if d.kind == "Move to Trash" {
-			home, err := os.UserHomeDir()
-			if err != nil {
+	case "Move to Trash":
+		// The system's trash, which records where the entries came from, as
+		// Finder's Put Back asks of it; the rename into ~/.Trash the other
+		// transfers use leaves nothing for the Finder to read.
+		trash := d.trashItem
+		if trash == nil {
+			trash = mygo.Shell.TrashItem
+		}
+		for _, src := range d.sources {
+			if err := trash(src); err != nil {
 				return err
 			}
-			target = filepath.Join(home, ".Trash")
 		}
+		return nil
+	case "Copy", "Move":
+		target := d.value
 		info, err := os.Stat(target)
 		if err != nil {
 			return err
@@ -512,9 +527,6 @@ func perform(d *dialog) error {
 		}
 		for _, src := range d.sources {
 			dst := filepath.Join(target, filepath.Base(src))
-			if d.kind == "Move to Trash" {
-				dst = filepath.Join(target, fmt.Sprintf("%s-%d", filepath.Base(src), time.Now().UnixNano()))
-			}
 			if err := validateDestination(src, dst); err != nil {
 				return err
 			}

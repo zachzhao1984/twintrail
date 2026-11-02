@@ -273,9 +273,16 @@ func TestAppearanceSwitchesLook(t *testing.T) {
 // dialog: the file goes to the Trash, and the panes reload with what is left.
 func TestCmdBackspaceTrashes(t *testing.T) {
 	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	// The test has no app event loop for the system's trash: move the file
+	// aside itself, which is what the stub stands in for.
+	trashed := []string{}
+	a.trashItem = func(path string) error {
+		trashed = append(trashed, path)
+		return os.Remove(path)
+	}
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()
-	trashed := a.targets()[0]
 	tt.Key(ui.Cmd, ui.KeyBackspace)
 	tt.Frame()
 	if a.modal != nil {
@@ -285,7 +292,10 @@ func TestCmdBackspaceTrashes(t *testing.T) {
 		tt.Advance(time.Second)
 		tt.Frame()
 	}
-	if _, err := os.Stat(trashed); !os.IsNotExist(err) {
+	if len(trashed) != 1 {
+		t.Fatalf("the system trash was asked for %v", trashed)
+	}
+	if _, err := os.Stat(trashed[0]); !os.IsNotExist(err) {
 		t.Fatalf("the selection survived the Trash: %v", err)
 	}
 	if a.status != "Move to Trash completed" {
@@ -297,6 +307,8 @@ func TestCmdBackspaceTrashes(t *testing.T) {
 // took the trashed one's place: the next in the folder, or the last.
 func TestTrashMovesCursorToNext(t *testing.T) {
 	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	a.trashItem = func(path string) error { return os.Remove(path) }
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()
 	// hello.txt sorts after Folder; trashing Folder leaves hello.txt, which

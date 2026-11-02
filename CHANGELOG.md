@@ -6,7 +6,10 @@
   panes reload with what the Trash left beside, the cursor taking the entry
   that took the trashed one's place, and the status bar naming what went
   wrong. F8 keeps its dialog. Every transfer's refresh keeps the cursor where
-  it looked, as the view reloads.
+  it looked, as the view reloads. The entries go through the system's trash,
+  which records where they came from: the Finder's Put Back works on what this
+  app trashes, where the rename into ~/.Trash it replaced left nothing to
+  read.
 
 - The entries' menus gain Open With…, which opens the picker over the entry it
   was opened on, and Compress, which packs the entries into one zip beside the
