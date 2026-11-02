@@ -51,6 +51,10 @@ type tab struct {
 	searchOpen bool
 	descending bool
 	view       viewMode
+	// pendingCursor is a cursor a reload kept for this tab, which its view
+	// applies once the list has had its say: the list rewrites a cursor
+	// whose entry is gone to -1 as the frame that reads the folder builds.
+	pendingCursor *int
 }
 type pane struct {
 	tabs    []*tab
@@ -210,10 +214,21 @@ func (a *app) runPending() {
 	}
 }
 func (a *app) load(t *tab, path string) {
+	a.loadKeeping(t, path, false)
+}
+
+// loadKeeping reads a folder into a tab, which keeps the cursor's entry when
+// keep is set: the view reloads where it looked, as a transfer's refresh does,
+// rather than jumping to the top.
+func (a *app) loadKeeping(t *tab, path string, keep bool) {
 	path = filepath.Clean(path)
 	t.generation++
 	generation := t.generation
 	hidden := t.hidden
+	was := ""
+	if keep && t.cursor >= 0 && t.cursor < len(t.entries) {
+		was = t.entries[t.cursor].name
+	}
 	t.loading = true
 	a.job(func() func() {
 		es, err := readDirectory(path, hidden)
@@ -233,11 +248,41 @@ func (a *app) load(t *tab, path string) {
 			a.recordRecent(path)
 			t.entries = es
 			sortEntries(t.entries, t.descending)
-			t.cursor = 0
 			t.marked = map[string]bool{}
 			t.filter = ""
 			t.err = ""
-			t.list.ScrollTo(0, ui.Start)
+			println("DBG loadKeeping done: was", was, "n", len(t.entries), "cursor", t.cursor)
+			// The cursor takes the entry that took the one it was on: the
+			// next, where the folder still holds one at or after it.
+			if was != "" {
+				t.pendingCursor = &t.cursor
+				t.cursor = 0
+				at := -1
+				for i, e := range t.entries {
+					if e.name == was {
+						at = i
+					}
+				}
+				if at >= 0 {
+					t.cursor = min(at, len(t.entries)-1)
+				} else {
+					for i, e := range t.entries {
+						if e.name > was {
+							t.cursor = i
+							break
+						}
+					}
+				}
+				if t.cursor >= len(t.entries) {
+					t.cursor = len(t.entries) - 1
+				}
+				if t.cursor < 0 {
+					t.cursor = 0
+				}
+			} else {
+				t.cursor = 0
+			}
+			t.list.ScrollIntoView(t.cursor)
 			a.syncTerminal(t)
 		}
 	})
@@ -410,7 +455,7 @@ func (a *app) doneTransfer(kind string, err error) func() {
 		}
 		for i := range a.panes {
 			for _, t := range a.panes[i].tabs {
-				a.load(t, t.path)
+				a.loadKeeping(t, t.path, true)
 			}
 		}
 	}

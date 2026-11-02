@@ -3,8 +3,10 @@
 ## Unreleased
 
 - ⌘⌫ moves the selection to the Trash without a dialog, as Finder's does: the
-  panes reload with what the Trash left beside, and the status bar names what
-  went wrong. F8 keeps its dialog.
+  panes reload with what the Trash left beside, the cursor taking the entry
+  that took the trashed one's place, and the status bar naming what went
+  wrong. F8 keeps its dialog. Every transfer's refresh keeps the cursor where
+  it looked, as the view reloads.
 
 - The entries' menus gain Open With…, which opens the picker over the entry it
   was opened on, and Compress, which packs the entries into one zip beside the

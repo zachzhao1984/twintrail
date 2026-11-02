@@ -292,3 +292,45 @@ func TestCmdBackspaceTrashes(t *testing.T) {
 		t.Fatalf("status = %q", a.status)
 	}
 }
+
+// TestTrashMovesCursorToNext checks ⌘⌫ leaves the cursor on the entry that
+// took the trashed one's place: the next in the folder, or the last.
+func TestTrashMovesCursorToNext(t *testing.T) {
+	a := fixture(t)
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	// hello.txt sorts after Folder; trashing Folder leaves hello.txt, which
+	// the cursor takes.
+	a.current().cursor = 0 // Folder
+	names := []string{}
+	for _, e := range a.current().entries {
+		names = append(names, e.name)
+	}
+	t.Logf("entries: %v", names)
+	tt.Key(ui.Cmd, ui.KeyBackspace)
+	for a.busy {
+		tt.Advance(time.Second)
+		tt.Frame()
+	}
+	tt.Frame()
+	if got := a.current().cursor; got < 0 || got >= len(a.current().entries) {
+		t.Fatalf("cursor = %d of %d entries", got, len(a.current().entries))
+	}
+	if got, want := a.current().entries[a.current().cursor].name, "hello.txt"; got != want {
+		t.Fatalf("cursor on %q, want %q", got, want)
+	}
+	// Trashing the last entry leaves the cursor on the last that is left.
+	a.current().cursor = len(a.current().entries) - 1
+	tt.Key(ui.Cmd, ui.KeyBackspace)
+	for a.busy {
+		tt.Advance(time.Second)
+		tt.Frame()
+	}
+	tt.Frame()
+	if len(a.current().entries) == 0 {
+		return
+	}
+	if got := a.current().cursor; got != len(a.current().entries)-1 {
+		t.Fatalf("cursor = %d, want the last of %d", got, len(a.current().entries))
+	}
+}

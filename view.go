@@ -211,6 +211,20 @@ func (a *app) paneView(c *ui.Context, index int) {
 		case asColumns:
 			a.filesColumns(c, index, t, es, active)
 		}
+		if t.pendingCursor != nil {
+			// The reload kept a cursor for the tab, which the list rewrote to
+			// -1 as its entries changed: apply it after the list has had its
+			// say, and scroll it into view.
+			t.cursor = *t.pendingCursor
+			if t.cursor >= len(es) {
+				t.cursor = len(es) - 1
+			}
+			if t.cursor < 0 {
+				t.cursor = 0
+			}
+			t.pendingCursor = nil
+			t.list.ScrollIntoView(t.cursor)
+		}
 		if t.searchOpen {
 			c.Key(fmt.Sprintf("search-%d", index))
 			ui.TextInput(c, &t.filter).Height(24).Placeholder("Quick search").Label(fmt.Sprintf("Quick search %d", index)).Focus().OnChange(func() { a.active = index; t.cursor = 0 })
