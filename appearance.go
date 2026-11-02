@@ -165,6 +165,12 @@ func loadSystemIcons() map[string]*ui.Bitmap {
 	return out
 }
 func (a *app) fileIcon(c *ui.Context, e entry) {
+	a.fileIconAt(c, e, 16, 16)
+}
+
+// fileIconAt draws a file's icon at a size of its own, the icon view's larger
+// than the list rows'.
+func (a *app) fileIconAt(c *ui.Context, e entry, width, height float32) {
 	key := "file"
 	if e.dir {
 		key = "folder"
@@ -173,10 +179,10 @@ func (a *app) fileIcon(c *ui.Context, e entry) {
 		}
 	}
 	if icon := folderIcons[key]; icon != nil {
-		ui.Image(c, icon).Width(16).Height(16).Fit(ui.Contain).Shrink(0)
+		ui.Image(c, icon).Width(width).Height(height).Fit(ui.Contain).Shrink(0)
 	} else {
 		colors := a.colors()
-		ui.Box(c).Width(16).Height(16).Draw(func(p *ui.Painter, r ui.Rect) {
+		ui.Box(c).Width(width).Height(height).Draw(func(p *ui.Painter, r ui.Rect) {
 			color := colors.fileIcon
 			if e.dir {
 				color = colors.dirIcon

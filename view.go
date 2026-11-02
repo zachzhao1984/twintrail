@@ -468,14 +468,14 @@ func (a *app) filesIcons(c *ui.Context, index int, t *tab, es []entry, active bo
 	colors := a.colors()
 	t.grid.Selected = &t.cursor
 	t.grid.Label = func(i int) string { return es[i].name }
-	ui.GridView(c, &t.grid, len(es), 96, 84, func(i int) {
+	ui.GridView(c, &t.grid, len(es), 128, 116, func(i int) {
 		e := es[i]
 		color := colors.text
 		if t.marked[e.name] {
 			color = colors.mark
 		}
-		a.fonts.Files.apply(ui.Column(c).Fill().Padding(6, 4).Gap(4).AlignItems(ui.Center).Children(func() {
-			ui.Box(c).Grow(1).AlignItems(ui.Center).Children(func() { a.fileIcon(c, e) })
+		a.fonts.Files.apply(ui.Column(c).Fill().Padding(10, 6).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Box(c).Grow(1).AlignItems(ui.Center).Children(func() { a.fileIconAt(c, e, 48, 48) })
 			ui.Text(c, e.name).TextColor(color).MaxLines(2).TextAlign(ui.Center).SingleLine()
 		}))
 	}).Grow(1).FocusRing(false).FocusBind(&a.focus, index+1).ItemKey(func(i int) any { return es[i].name }).OnChange(func() { a.active = index }).OnSubmit(func() { a.active = index; a.open() }).OnShortcut(0, ui.KeyBackspace, func() { a.active = index; a.load(t, filepath.Dir(t.path)) }).OnShortcut(0, ui.KeySpace, func() {
