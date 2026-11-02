@@ -731,3 +731,66 @@ func TestColumnsFollowClicks(t *testing.T) {
 		t.Fatal("choosing Deepest opened no column")
 	}
 }
+
+// TestPinToFavorites checks the menus' Pin to Favorites puts a folder in the
+// sidebar's Favorites, that a pinned folder's menu offers no second pin, and
+// that the item acts on the entry it was opened on in every view.
+func TestPinToFavorites(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	os.MkdirAll(filepath.Join(a.panes[0].tabs[0].path, "Folder", "Inner"), 0755)
+	a.favorites = nil
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	for _, mode := range []viewMode{asList, asIcons, asColumns} {
+		a.setViewMode(0, mode)
+		tt.Frame()
+		if err := tt.RightClick("Folder"); err != nil {
+			t.Fatalf("mode %v: %v", mode, err)
+		}
+		menu := tt.Menu()
+		found := false
+		for _, item := range menu {
+			if item == "Pin to Favorites" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("mode %v has no Pin to Favorites: %v", mode, menu)
+		}
+		if err := tt.ChooseMenuItem("Pin to Favorites"); err != nil {
+			t.Fatalf("mode %v: %v", mode, err)
+		}
+		tt.Frame()
+		if len(a.favorites) != 1 || a.favorites[0].Name != "Folder" {
+			t.Fatalf("mode %v pinned nothing: %+v", mode, a.favorites)
+		}
+		// The pinned folder's menu offers no second pin.
+		if err := tt.RightClick("Folder"); err != nil {
+			t.Fatal(err)
+		}
+		if err := tt.ChooseMenuItem("Pin to Favorites"); err == nil {
+			t.Fatalf("mode %v pins a pinned folder again", mode)
+		}
+		tt.CloseMenu()
+		a.removeFavorite(filepath.Join(a.panes[0].tabs[0].path, "Folder"))
+		tt.Frame()
+	}
+	// Pinning Inner from a column of the column view pins Inner, not the pane's
+	// own folder.
+	a.setViewMode(0, asColumns)
+	tt.Frame()
+	tt.Click("Folder")
+	tt.Frame()
+	if err := tt.RightClick("Inner"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Pin to Favorites"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	inner := filepath.Join(a.panes[0].tabs[0].path, "Folder", "Inner")
+	if len(a.favorites) != 1 || a.favorites[0].Path != inner {
+		t.Fatalf("pinned %+v, want Inner at %q", a.favorites, inner)
+	}
+}

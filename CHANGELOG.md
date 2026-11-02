@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Every view's folders carry a context menu, and every menu gains Pin to
+  Favorites, which puts the folder in the sidebar's Favorites; a folder already
+  pinned offers no second pin. The icon view's cells and the column view's rows
+  act on the entry they were opened on, whose menu the marked entries join.
+
 - Each tab shows its folder as a list, as icons in a grid or as columns, as
   Finder's list, icon and column views do: the three buttons at the right end
   of the breadcrumb row pick the mode, the one the tab is in carrying the

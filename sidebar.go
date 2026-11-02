@@ -353,6 +353,28 @@ func (a *app) recordRecent(path string) {
 	a.recents = recents
 }
 
+// addFavorite pins a folder to the end of Favorites once, as its menu's Pin to
+// Favorites does; a folder already pinned stays where it is.
+func (a *app) addFavorite(path string) {
+	path = filepath.Clean(path)
+	if path == "" || !filepath.IsAbs(path) || !isDirectory(path) || a.isFavorite(path) {
+		return
+	}
+	a.favorites = append(a.favorites, savedLocation{Name: displayName(path), Path: path})
+	a.favoritesFold.open = true
+	a.persistSettings(true)
+}
+
+func (a *app) isFavorite(path string) bool {
+	path = filepath.Clean(path)
+	for _, item := range a.favorites {
+		if item.Path == path {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *app) removeFavorite(path string) {
 	favorites := a.favorites[:0]
 	for _, item := range a.favorites {

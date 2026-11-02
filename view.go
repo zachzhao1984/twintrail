@@ -220,39 +220,56 @@ func (a *app) paneView(c *ui.Context, index int) {
 func (a *app) fileMenu(c *ui.Context, m *ui.Menu, index, row int) {
 	a.active, a.focus = index, index+1
 	t := a.panes[index].tabs[a.panes[index].current]
-	moved := false
 	if row >= 0 && row < len(t.visible()) && row != t.cursor {
 		t.cursor = row
-		moved = true
-	}
-	// The frame the menu opens in is the one the row moved in, but the
-	// runtime shows the native menu once the frame is already presented,
-	// and it stays up until an item is chosen, so nothing the row moved to
-	// reaches the screen while the menu is there. Asking for a frame now
-	// has it drawn again before the menu shows, as a menu of Finder's does
-	// when it chooses the row it was opened on.
-	if moved {
+		// The frame the menu opens in is the one the row moved in, but the
+		// runtime shows the native menu once the frame is already presented,
+		// and it stays up until an item is chosen, so nothing the row moved to
+		// reaches the screen while the menu is there. Asking for a frame now
+		// has it drawn again before the menu shows, as a menu of Finder's does
+		// when it chooses the row it was opened on.
 		c.Invalidate()
 	}
-	none := len(a.targets()) == 0 // the parent row, which has nothing to act on
+	a.fileMenuAt(c, m, index, "")
+}
+
+// fileMenuAt fills a menu over one entry: path when the menu was opened on a
+// row the pane's cursor does not follow, as a cell of the icon view or a row of
+// a column of the column view, or "" to act on the pane's targets as usual.
+func (a *app) fileMenuAt(c *ui.Context, m *ui.Menu, index int, path string) {
+	// The menu acts on the entry it was opened on, which the icon view's cells
+	// and the column view's rows name, and on the pane's marked entries
+	// besides, as the list's rows do.
+	paths := a.targets()
+	if path != "" {
+		paths = append([]string{path}, a.markedPaths()...)
+	}
+	none := len(paths) == 0
 	for _, kind := range []string{"Copy", "Move", "Rename", "New folder", "Move to Trash", "Delete"} {
 		if m.Item(kind).Disabled(a.busy || none).Chosen() {
-			a.ask(kind)
+			if path != "" {
+				a.askFor(kind, paths)
+			} else {
+				a.ask(kind)
+			}
 		}
 	}
 	m.Separator()
 	if m.Item("Reveal in Finder").Disabled(none).Chosen() {
-		if paths := a.targets(); len(paths) > 0 {
-			a.launch("open", "-R", paths[0])
-		}
+		a.launch("open", "-R", paths[0])
 	}
 	if m.Item("Copy Path").Disabled(a.busy || none).Chosen() {
-		if paths := a.targets(); len(paths) > 0 {
-			c.Services().WriteClipboard(joinedPaths(paths))
+		c.Services().WriteClipboard(joinedPaths(paths))
+	}
+	if len(paths) == 1 && isDirectory(paths[0]) {
+		// One folder can join the Favorites, which a pinned one has.
+		if m.Item("Pin to Favorites").Disabled(a.busy || a.isFavorite(paths[0])).Chosen() {
+			pinned := paths[0]
+			a.deferAction(c, func() { a.addFavorite(pinned) })
 		}
 	}
 	if m.Item("Open Terminal Here").Chosen() {
-		a.launch("open", "-a", "Terminal", t.path)
+		a.launch("open", "-a", "Terminal", a.panes[index].tabs[a.panes[index].current].path)
 	}
 }
 func (a *app) markMove(t *tab, es []entry, delta int) {
@@ -477,7 +494,10 @@ func (a *app) filesIcons(c *ui.Context, index int, t *tab, es []entry, active bo
 		a.fonts.Files.apply(ui.Column(c).Fill().Padding(10, 6).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Box(c).Grow(1).AlignItems(ui.Center).Children(func() { a.fileIconAt(c, e, 48, 48) })
 			ui.Text(c, e.name).TextColor(color).MaxLines(2).TextAlign(ui.Center).SingleLine()
-		}))
+		})).ContextMenu(func(m *ui.Menu) {
+			a.active, a.focus = index, index+1
+			a.fileMenuAt(c, m, index, filepath.Join(t.path, e.name))
+		})
 	}).Grow(1).FocusRing(false).FocusBind(&a.focus, index+1).ItemKey(func(i int) any { return es[i].name }).OnChange(func() { a.active = index }).OnSubmit(func() { a.active = index; a.open() }).OnShortcut(0, ui.KeyBackspace, func() { a.active = index; a.load(t, filepath.Dir(t.path)) }).OnShortcut(0, ui.KeySpace, func() {
 		a.active = index
 		targets := a.targets()
@@ -565,6 +585,9 @@ func (a *app) filesColumn(c *ui.Context, index int, t *tab, col *column, active 
 		color := colors.text
 		a.fonts.Files.apply(ui.Row(c).Height(fontHeight(a.fonts.Files, fileRowHeight)).Background(bg).AlignItems(ui.Center)).Children(func() {
 			ui.Row(c).Grow(1).PaddingX(4).Gap(4).AlignItems(ui.Center).Children(func() { a.fileIcon(c, e); ui.Text(c, e.name).TextColor(color).Grow(1).MinWidth(0).SingleLine() })
+		}).ContextMenu(func(m *ui.Menu) {
+			a.active, a.focus = index, index+1
+			a.fileMenuAt(c, m, index, filepath.Join(col.path, e.name))
 		}).OnClick(func() {
 			col.cursor = r.Index
 			a.active, a.focus = index, index+1

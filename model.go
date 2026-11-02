@@ -277,6 +277,20 @@ func (a *app) launch(command string, args ...string) {
 		}
 	})
 }
+
+// markedPaths lists the entries the pane has marked, in the order the list
+// shows them.
+func (a *app) markedPaths() []string {
+	t := a.current()
+	out := []string{}
+	for _, e := range t.entries {
+		if t.marked[e.name] {
+			out = append(out, filepath.Join(t.path, e.name))
+		}
+	}
+	return out
+}
+
 func (a *app) targets() []string {
 	t := a.current()
 	out := []string{}
@@ -293,6 +307,20 @@ func (a *app) targets() []string {
 	}
 	return out
 }
+
+// askFor opens the dialog of kind over the paths given, which a menu opened on
+// one entry names; ask opens it over the pane's targets.
+func (a *app) askFor(kind string, sources []string) {
+	if (kind == "Copy" || kind == "Move" || kind == "Rename" || kind == "Move to Trash" || kind == "Delete") && len(sources) == 0 {
+		a.status = "Select a file or folder first"
+		return
+	}
+	a.ask(kind)
+	if a.modal != nil {
+		a.modal.sources = sources
+	}
+}
+
 func (a *app) ask(kind string) {
 	t := a.current()
 	d := &dialog{open: true, kind: kind, sources: a.targets(), target: t.path}
