@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
 - Every view's folders carry a context menu, and every menu gains Pin to
   Favorites, which puts the folder in the sidebar's Favorites; a folder already

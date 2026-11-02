@@ -12,8 +12,35 @@ permissions:
 
 jobs:
   build:
-    name: Build the universal disk image
-    runs-on: macos-latest
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS builds on macOS, which makes the disk image and signs the
+          # app; mygo needs no cgo, so Windows and Linux build from a plain
+          # runner each, where NSIS for the Windows setup is at hand.
+          - name: macOS universal
+            runs-on: macos-latest
+            platforms: darwin/universal
+            artifact: Twintrail-macOS
+            paths: |
+              build/*/*.dmg
+          - name: Windows
+            runs-on: windows-latest
+            platforms: windows/amd64,windows/arm64
+            artifact: Twintrail-Windows
+            paths: |
+              build/*/*.exe
+              build/*/*.zip
+          - name: Linux
+            runs-on: ubuntu-latest
+            platforms: linux/amd64,linux/arm64
+            artifact: Twintrail-Linux
+            paths: |
+              build/*/*.tar.gz
+              build/*/*.deb
     steps:
       - uses: actions/checkout@v7
 
@@ -26,6 +53,7 @@ jobs:
       # Skipped on workflow_dispatch, which has no tag to check.
       - name: Check that the tag matches the version
         if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
         run: |
           version="$(jq -r .version mygo.json)"
           if [ "$GITHUB_REF_NAME" != "v$version" ]; then
@@ -38,10 +66,13 @@ jobs:
       # build/<goos>-<goarch> wholesale on every run, so a second build
       # deletes what the first left there.
       #
-      # This one makes the disk image and, when the signing key is set, the
-      # archive, deltas and update manifest beside it, and -upload then
-      # sends those to the draft release. It keeps the disk image on disk,
-      # so the step after can still find it.
+      # The macOS build makes the disk image and, when the signing key is
+      # set, the archive, deltas and update manifest beside it, and -upload
+      # then sends those to the draft release. It keeps the disk image on
+      # disk, so the step after can still find it. Windows and Linux build
+      # without -upload even when the key is set: one job would upload the
+      # draft release the others then race, and the manifest of one platform
+      # would tell the updater of every platform.
       #
       # mygo downloads libghostty-vt from a GitHub release asset on a cold
       # cache, and that redirect can fail with a transient EOF. Retry the
@@ -57,17 +88,18 @@ jobs:
         env:
           MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
           upload=""
           if [ -z "${MYGO_UPDATER_PRIVATE_KEY:-}" ]; then
             echo "::warning::MYGO_UPDATER_PRIVATE_KEY is not set: building without the signed update files."
-          else
+          elif [ "$RUNNER_OS" = "macOS" ]; then
             upload="-upload"
           fi
           for attempt in 1 2 3; do
             echo "::group::Build attempt $attempt of 3"
             # shellcheck disable=SC2086
-            if go tool mygo build --platform darwin/universal --skip-notarize $upload; then
+            if go tool mygo build --platform "${{ matrix.platforms }}" --skip-notarize $upload; then
               echo "::endgroup::"
               break
             fi
@@ -86,10 +118,6 @@ jobs:
       # made either way, and -upload leaves it in place.
       - uses: actions/upload-artifact@v7
         with:
-          name: Twintrail-universal
-          # out in mygo.json is build, and mygo writes the platform to
-          # <out>/<goos>-<goarch>, which for this target is
-          # build/darwin-universal, holding one disk image named
-          # "Twintrail <version>.dmg" with no arch suffix.
-          path: build/*/*.dmg
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.paths }}
           if-no-files-found: error
