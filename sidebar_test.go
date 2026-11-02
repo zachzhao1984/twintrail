@@ -683,3 +683,51 @@ func TestNoParentRow(t *testing.T) {
 		t.Fatalf("path = %q, want %q", got, want)
 	}
 }
+
+// TestColumnsFollowClicks checks that choosing a folder in a column of the
+// column view opens its column beside, and that choosing another folder in that
+// column takes the columns after it with it.
+func TestColumnsFollowClicks(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	os.MkdirAll(filepath.Join(a.panes[0].tabs[0].path, "Folder", "Inner", "Deepest"), 0755)
+	os.WriteFile(filepath.Join(a.panes[0].tabs[0].path, "Folder", "Inner", "note.txt"), []byte("hi"), 0644)
+	a.load(a.current(), a.current().path)
+	a.setViewMode(0, asColumns)
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	if err := tt.Click("Folder"); err != nil {
+		t.Fatalf("no Folder in the first column: %v", tt.Texts())
+	}
+	tt.Frame()
+	if len(a.panes[0].tabs[0].columns) < 2 || a.panes[0].tabs[0].columns[1].path == "" {
+		t.Fatalf("choosing Folder opened no column: %v", a.panes[0].tabs[0].columns)
+	}
+	if !tt.HasText("Inner") {
+		t.Fatalf("the second column does not show Inner: %v", tt.Texts())
+	}
+	if err := tt.Click("Inner"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("Deepest") {
+		t.Fatalf("the third column does not show Deepest: %v", tt.Texts())
+	}
+	// Choosing a file opens nothing beside: Deepest stays a row of Inner's
+	// column, and no fourth column takes it.
+	if err := tt.Click("note.txt"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.panes[0].tabs[0].columns[3].path != "" {
+		t.Fatalf("choosing a file opened a column: %q", a.panes[0].tabs[0].columns[3].path)
+	}
+	// And choosing the folder again opens it.
+	if err := tt.Click("Deepest"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.panes[0].tabs[0].columns[3].path == "" {
+		t.Fatal("choosing Deepest opened no column")
+	}
+}

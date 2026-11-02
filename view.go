@@ -505,19 +505,23 @@ func (a *app) filesIcons(c *ui.Context, index int, t *tab, es []entry, active bo
 // column of the pane's folder chooses.
 func (a *app) filesColumns(c *ui.Context, index int, t *tab, es []entry, active bool) {
 	a.fonts.Files.apply(ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
-		path := t.path
+		// The first column shows the pane's own folder; the ones beside show
+		// the folder chosen in the column before, which the click cleared or
+		// filled, and a column that holds no folder chosen stops the chain.
 		for i := range t.columns {
 			fold := &t.columns[i]
-			sub := a.dirEntries(path)
-			if sub == nil {
+			if fold.path == "" {
+				// The first column shows the pane's own folder until it is
+				// filled; a cleared column holds none and stops the chain.
+				if i > 0 {
+					break
+				}
+				fold.entries, fold.path = a.dirEntries(t.path), t.path
+			}
+			if fold.entries == nil {
 				break
 			}
-			fold.entries, fold.path = sub, path
-			a.filesColumn(c, index, fold, active)
-			if fold.cursor < 0 || fold.cursor >= len(sub) || !sub[fold.cursor].dir {
-				break
-			}
-			path = filepath.Join(path, sub[fold.cursor].name)
+			a.filesColumn(c, index, t, fold, active)
 		}
 	}))
 }
@@ -542,14 +546,17 @@ func (a *app) dirEntries(path string) []entry {
 	return es
 }
 
-// filesColumn draws one column of the column view: the rows of the list, which
-// choose in the column's cursor.
-func (a *app) filesColumn(c *ui.Context, index int, col *column, active bool) {
+// filesColumn draws one column of the column view: the rows of the list, whose
+// cursor is the column's own. Choosing a folder opens its column beside, as
+// t.columns fills again from the column before it, and clears those after.
+func (a *app) filesColumn(c *ui.Context, index int, t *tab, col *column, active bool) {
 	colors := a.colors()
 	theme := c.Theme()
+	at := a.columnAt(t, col)
+	c.Key(fmt.Sprintf("column-%d-%d", index, at))
 	col.list.Selected = &col.cursor
 	col.list.Label = func(i int) string { return col.entries[i].name }
-	ui.List(c, &col.list, len(col.entries)).Width(220).Shrink(0).FocusRing(false).ItemKey(func(i int) any { return col.entries[i].name }).Rows(func(r ui.ListRow) {
+	ui.List(c, &col.list, len(col.entries)).Grow(1).Basis(0).MinWidth(0).FocusRing(false).ItemKey(func(i int) any { return col.entries[i].name }).Rows(func(r ui.ListRow) {
 		e := col.entries[r.Index]
 		bg := colors.window
 		if r.Selected() && active {
@@ -558,6 +565,29 @@ func (a *app) filesColumn(c *ui.Context, index int, col *column, active bool) {
 		color := colors.text
 		a.fonts.Files.apply(ui.Row(c).Height(fontHeight(a.fonts.Files, fileRowHeight)).Background(bg).AlignItems(ui.Center)).Children(func() {
 			ui.Row(c).Grow(1).PaddingX(4).Gap(4).AlignItems(ui.Center).Children(func() { a.fileIcon(c, e); ui.Text(c, e.name).TextColor(color).Grow(1).MinWidth(0).SingleLine() })
-		}).OnClick(func() { a.active, a.focus = index, index+1 })
+		}).OnClick(func() {
+			col.cursor = r.Index
+			a.active, a.focus = index, index+1
+			// The column beside shows what the folder chosen holds, and the
+			// columns after it go, whether the choice is a folder or a file.
+			for i := at + 1; i < len(t.columns); i++ {
+				t.columns[i] = column{}
+			}
+			if e.dir {
+				next := &t.columns[at+1]
+				next.entries, next.path = a.dirEntries(filepath.Join(col.path, e.name)), filepath.Join(col.path, e.name)
+			}
+		})
 	}).OnChange(func() { a.active = index })
+}
+
+// columnAt tells which of the pane's columns col is, so that the rows can clear
+// the columns after their own.
+func (a *app) columnAt(t *tab, col *column) int {
+	for i := range t.columns {
+		if &t.columns[i] == col {
+			return i
+		}
+	}
+	return -1
 }
