@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Updated myGO to v0.7.4. The migration to checked elements names nothing this
+  app changes: `go tool mygo migrate-ui` rewrites no file, and `go tool mygo
+  vet` and the tests pass as they did.
+
 - A tab drags between the panes: its strip takes a tab from either pane, which
   moves across and becomes the current tab there, and the pane it left keeps
   its other tabs. The strips are always shown now, where the single tab of a
