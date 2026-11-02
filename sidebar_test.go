@@ -794,3 +794,62 @@ func TestPinToFavorites(t *testing.T) {
 		t.Fatalf("pinned %+v, want Inner at %q", a.favorites, inner)
 	}
 }
+
+// TestTabDragsBetweenPanes drags a tab of the left pane onto the right pane's
+// strip, which moves the tab across and makes it current there; the pane it
+// left keeps its other tab.
+func TestTabDragsBetweenPanes(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	a.newTerminal = func(string) (terminalSession, error) { return &fakeTerminal{}, nil }
+	left := &a.panes[0]
+	os.MkdirAll(filepath.Join(a.panes[0].tabs[0].path, "Second Folder"), 0755)
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	// A second tab of the left pane, at another folder.
+	a.active, a.focus = 0, 1
+	a.newTab()
+	second := left.tabs[1]
+	a.load(second, filepath.Join(a.panes[0].tabs[0].path, "Second Folder"))
+	tt.Frame()
+	if len(left.tabs) != 2 || len(a.panes[1].tabs) != 1 {
+		t.Fatalf("panes: %d and %d tabs", len(left.tabs), len(a.panes[1].tabs))
+	}
+	// The strips of both panes sit on one row: the second tab's close button
+	// marks the tab, and the first tab of the right pane marks where its strip
+	// is. Press the tab beside its close button, which is no button itself.
+	from, ok := tt.Find("Close tab 2 in pane 1")
+	if !ok {
+		t.Fatalf("no second tab: %v", tt.Texts())
+	}
+	to, ok := tt.Find("Close tab 1 in pane 2")
+	if !ok {
+		t.Fatalf("no first tab right: %v", tt.Texts())
+	}
+	sx, sy := from.X-60, from.Y+from.H/2
+	tx, ty := to.X-60, sy
+	tt.Press(sx, sy)
+	tt.Frame()
+	tt.Move((sx+tx)/2, ty)
+	tt.Frame()
+	tt.Move(tx, ty)
+	tt.Frame()
+	tt.Release(tx, ty)
+	tt.Frame()
+	if len(a.panes[1].tabs) != 2 || a.panes[1].tabs[1] != second {
+		t.Fatalf("the tab did not move across: %d tabs right", len(a.panes[1].tabs))
+	}
+	if len(left.tabs) != 1 || left.tabs[0] == second {
+		t.Fatalf("the pane it left: %d tabs", len(left.tabs))
+	}
+	if a.active != 1 || a.current() != second {
+		t.Fatalf("active=%d, want the pane the tab joined at its moved tab", a.active)
+	}
+	if a.current().path != filepath.Join(a.panes[0].tabs[0].path, "Second Folder") {
+		t.Fatalf("the moved tab holds %q", a.current().path)
+	}
+	tt.Frame()
+	if !tt.HasText("Second Folder") {
+		t.Fatalf("the moved tab's folder is not shown: %v", tt.Texts())
+	}
+}

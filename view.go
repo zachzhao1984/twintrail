@@ -124,42 +124,51 @@ func (a *app) paneView(c *ui.Context, index int) {
 	active := a.active == index
 	c.Key(fmt.Sprintf("pane-%d", index))
 	ui.Column(c).Fill().Gap(0).Disabled(a.modal != nil).Children(func() {
-		if len(p.tabs) > 1 {
-			tabHeight := max(fontHeight(a.fonts.Tabs, 24), fontHeight(a.fonts.VirtualTabs, 24))
-			ui.Row(c).Height(tabHeight).Gap(1).Background(theme.Border).Border(1, theme.Border).BorderWidth(0, 0, 1, 0).Children(func() {
-				for i, tab := range p.tabs {
-					bg, foreground := colors.strip, colors.muted
-					if i == p.current && active {
-						bg, foreground = colors.window, colors.text
-					}
-					tabFont := a.fonts.Tabs
-					if i == p.current {
-						tabFont = a.fonts.VirtualTabs
-					}
-					name := filepath.Base(tab.path)
-					if tab.path == "/" {
-						name = "Macintosh HD"
-					}
-					c.Key(fmt.Sprintf("tab-%p", tab))
-					ui.Row(c).Grow(1).Height(tabHeight).Background(bg).Children(func() {
-						c.Key(fmt.Sprintf("select-tab-%p", tab))
-						tabFont.apply(ui.ButtonBase(c).Grow(1).Height(tabHeight).PaddingX(10).AlignItems(ui.Center)).Children(func() {
-							ui.Text(c, name).SingleLine().TextColor(foreground)
-						}).OnClick(func() { p.current = i; a.active = index; a.focus = index + 1 })
-						c.Key(fmt.Sprintf("close-tab-%p", tab))
-						ui.ButtonBase(c).Width(20).Height(tabHeight).AlignItems(ui.Center).Justify(ui.Center).Children(func() {
-							ui.Text(c, "×").FontSize(13).TextColor(foreground)
-						}).Label(fmt.Sprintf("Close tab %d in pane %d", i+1, index+1)).OnClick(func() { a.active = index; a.focus = index + 1; a.closeTab(p, i) })
-					}).ContextMenu(func(m *ui.Menu) {
-						if m.Item("Close Tab").Disabled(len(p.tabs) <= 1).Chosen() {
-							a.active = index
-							a.focus = index + 1
-							a.closeTab(p, i)
-						}
-					})
-				}
-			})
+		// The strip takes a tab dragged from either pane: one of its own
+		// reorders, one from the other pane moves across.
+		tabStripHeight := max(fontHeight(a.fonts.Tabs, 24), fontHeight(a.fonts.VirtualTabs, 24))
+		strip := ui.Row(c).Height(tabStripHeight).Gap(1).Background(theme.Border).Border(1, theme.Border).BorderWidth(0, 0, 1, 0)
+		if drag, ok := ui.Drop[tabDrag](strip); ok {
+			a.dropTab(index, drag)
 		}
+		strip.Children(func() {
+			for i, tab := range p.tabs {
+				bg, foreground := colors.strip, colors.muted
+				if i == p.current && active {
+					bg, foreground = colors.window, colors.text
+				}
+				tabFont := a.fonts.Tabs
+				if i == p.current {
+					tabFont = a.fonts.VirtualTabs
+				}
+				name := filepath.Base(tab.path)
+				if tab.path == "/" {
+					name = "Macintosh HD"
+				}
+				c.Key(fmt.Sprintf("tab-%p", tab))
+				row := ui.Row(c).Grow(1).Height(tabStripHeight).Background(bg)
+				row.Drag(tabDrag{from: index, tab: tab})
+
+				if row.Dragging() {
+				}
+				row.Children(func() {
+					c.Key(fmt.Sprintf("select-tab-%p", tab))
+					tabFont.apply(ui.ButtonBase(c).Grow(1).Height(tabStripHeight).PaddingX(10).AlignItems(ui.Center)).Children(func() {
+						ui.Text(c, name).SingleLine().TextColor(foreground)
+					}).OnClick(func() { p.current = i; a.active = index; a.focus = index + 1 })
+					c.Key(fmt.Sprintf("close-tab-%p", tab))
+					ui.ButtonBase(c).Width(20).Height(tabStripHeight).AlignItems(ui.Center).Justify(ui.Center).Children(func() {
+						ui.Text(c, "×").FontSize(13).TextColor(foreground)
+					}).Label(fmt.Sprintf("Close tab %d in pane %d", i+1, index+1)).OnClick(func() { a.active = index; a.focus = index + 1; a.closeTab(p, i) })
+				}).ContextMenu(func(m *ui.Menu) {
+					if m.Item("Close Tab").Disabled(len(p.tabs) <= 1).Chosen() {
+						a.active = index
+						a.focus = index + 1
+						a.closeTab(p, i)
+					}
+				})
+			}
+		})
 		a.fonts.Breadcrumbs.apply(ui.Row(c).Height(fontHeight(a.fonts.Breadcrumbs, 24)).PaddingX(6).Gap(4).AlignItems(ui.Center)).Children(func() {
 			ui.ButtonBase(c).Label(fmt.Sprintf("Root %d", index)).Children(func() { ui.Text(c, "/").TextColor(theme.TextMuted) }).OnClick(func() { a.active = index; a.load(t, "/") })
 			parts := strings.Split(strings.Trim(t.path, "/"), "/")
@@ -613,4 +622,39 @@ func (a *app) columnAt(t *tab, col *column) int {
 		}
 	}
 	return -1
+}
+
+// tabDrag is a tab being dragged between the panes: the pane it came from and
+// the tab itself.
+type tabDrag struct {
+	from int
+	tab  *tab
+}
+
+// dropTab moves a dragged tab into the pane index: one from the other pane
+// joins at its end and becomes current; one of the pane's own stays where it
+// is. A pane keeps the tab it came from if it would lose its last one, which
+// moves a copy of the layout rather than emptying the pane.
+func (a *app) dropTab(index int, drag tabDrag) {
+	if drag.from == index {
+		return
+	}
+	from := &a.panes[drag.from]
+	for i, t := range from.tabs {
+		if t == drag.tab {
+			from.tabs = append(from.tabs[:i], from.tabs[i+1:]...)
+			if from.current >= len(from.tabs) {
+				from.current = len(from.tabs) - 1
+			}
+			break
+		}
+	}
+	to := &a.panes[index]
+	drag.tab.generation++
+	to.tabs = append(to.tabs, drag.tab)
+	to.current = len(to.tabs) - 1
+	a.active = index
+	a.focus = index + 1
+	a.syncTerminal(drag.tab)
+	a.persistSettings(true)
 }

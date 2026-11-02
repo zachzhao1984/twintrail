@@ -1,6 +1,11 @@
 # Changelog
 
-## 1.0.0
+## Unreleased
+
+- A tab drags between the panes: its strip takes a tab from either pane, which
+  moves across and becomes the current tab there, and the pane it left keeps
+  its other tabs. The strips are always shown now, where the single tab of a
+  pane had none to show.
 
 - Every view's folders carry a context menu, and every menu gains Pin to
   Favorites, which puts the folder in the sidebar's Favorites; a folder already
