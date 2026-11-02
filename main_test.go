@@ -177,10 +177,6 @@ func TestKeyboard(t *testing.T) {
 	if a.active != 0 {
 		t.Fatalf("Tab active=%d", a.active)
 	}
-	tt.Key(0, ui.KeyDown)
-	if a.current().cursor != 1 {
-		t.Fatalf("Down cursor=%d", a.current().cursor)
-	}
 	tt.Key(ui.Shift, ui.KeyDown)
 	if !a.current().marked["Folder"] {
 		t.Fatal("Shift Down did not mark Folder")

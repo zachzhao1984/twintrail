@@ -80,7 +80,10 @@
 
 The first release of Twintrail, a native macOS dual-pane file manager.
 
-- Directories first, name ascending or descending, hidden-file toggle, and a
+- A tab's list, icon and column views show the folder's entries alone, without
+  the parent folder row the older views began with; Backspace still goes up, as
+  the breadcrumbs do.
+, name ascending or descending, hidden-file toggle, and a
   name substring filter.
 - Copy, move, rename, create nested directories, and move to the macOS Trash,
   with confirmation dialogs and error display. Copying preserves symlinks,

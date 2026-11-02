@@ -506,9 +506,6 @@ func (a *app) filesIcons(c *ui.Context, index int, t *tab, es []entry, active bo
 func (a *app) filesColumns(c *ui.Context, index int, t *tab, es []entry, active bool) {
 	a.fonts.Files.apply(ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
 		path := t.path
-		if t.cursor >= 0 && t.cursor < len(es) && es[t.cursor].dir && es[t.cursor].name != ".." {
-			path = filepath.Join(t.path, es[t.cursor].name)
-		}
 		for i := range t.columns {
 			fold := &t.columns[i]
 			sub := a.dirEntries(path)

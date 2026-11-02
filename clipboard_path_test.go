@@ -78,7 +78,7 @@ func TestCopyPathDisabledWhileBusy(t *testing.T) {
 	a := fixture(t)
 	tt := ui.NewTester(a.view, 1100, 720)
 	a.busy = true
-	a.current().cursor = 2
+	a.current().cursor = 1
 	tt.Frame()
 	if err := tt.RightClick("hello.txt"); err != nil {
 		t.Fatal(err)
@@ -91,8 +91,7 @@ func TestCopyPathDisabledWhileBusy(t *testing.T) {
 	}
 }
 
-// rowNames lists the entry names the file list shows, which start with the
-// parent entry when the directory has a parent.
+// rowNames lists the entry names the file list shows.
 func rowNames(t *tab) []string {
 	out := make([]string, 0, len(t.entries))
 	for _, e := range t.entries {
@@ -106,12 +105,6 @@ func rowNames(t *tab) []string {
 func TestContextMenuActsOnClickedRow(t *testing.T) {
 	a := fixture(t)
 	tt := ui.NewTester(a.view, 1100, 720)
-	// The cursor starts on the parent row.
-	a.current().cursor = 0
-	tt.Frame()
-	if names := rowNames(a.current()); len(names) == 0 || names[0] != ".." {
-		t.Fatalf("fixture rows: %v", names)
-	}
 	if err := tt.RightClick("hello.txt"); err != nil {
 		t.Fatal(err)
 	}
@@ -121,12 +114,12 @@ func TestContextMenuActsOnClickedRow(t *testing.T) {
 	if got, want := tt.Clipboard(), filepath.Join(a.current().path, "hello.txt"); got != want {
 		t.Fatalf("clipboard = %q, want %q", got, want)
 	}
-	if got := a.current().cursor; got != 2 {
-		t.Fatalf("cursor = %d, want 2 (hello.txt)", got)
+	if got := a.current().cursor; got != 1 {
+		t.Fatalf("cursor = %d, want 1 (hello.txt)", got)
 	}
 
-	// The same holds between two real rows, where every item stays enabled:
-	// the cursor sits on Folder, the menu opens on hello.txt.
+	// The same holds between two rows, where every item stays enabled: the
+	// cursor sits on Folder, the menu opens on hello.txt.
 	a = fixture(t)
 	tt = ui.NewTester(a.view, 1100, 720)
 	a.current().cursor = 1 // Folder
@@ -140,8 +133,8 @@ func TestContextMenuActsOnClickedRow(t *testing.T) {
 	if got, want := tt.Clipboard(), filepath.Join(a.current().path, "hello.txt"); got != want {
 		t.Fatalf("clipboard = %q, want %q (not the cursor's Folder)", got, want)
 	}
-	if got := a.current().cursor; got != 2 {
-		t.Fatalf("cursor = %d, want 2 (hello.txt)", got)
+	if got := a.current().cursor; got != 1 {
+		t.Fatalf("cursor = %d, want 1 (hello.txt)", got)
 	}
 }
 
@@ -158,7 +151,7 @@ func TestContextMenuWithMarkedEntries(t *testing.T) {
 	tt.Frame()
 	// Mark hello.txt, then open the menu on a row that is not marked.
 	a.current().marked["hello.txt"] = true
-	a.current().cursor = 1
+	a.current().cursor = 0 // Folder
 	tt.Frame()
 	if err := tt.RightClick("Folder"); err != nil {
 		t.Fatal(err)
@@ -176,7 +169,6 @@ func TestContextMenuWithMarkedEntries(t *testing.T) {
 func TestContextMenuRenameActsOnClickedRow(t *testing.T) {
 	a := fixture(t)
 	tt := ui.NewTester(a.view, 1100, 720)
-	a.current().cursor = 0 // the parent row
 	tt.Frame()
 	if err := tt.RightClick("Folder"); err != nil {
 		t.Fatal(err)
@@ -192,31 +184,6 @@ func TestContextMenuRenameActsOnClickedRow(t *testing.T) {
 	}
 	if len(a.modal.sources) != 1 || a.modal.sources[0] != filepath.Join(a.current().path, "Folder") {
 		t.Fatalf("Rename sources = %v, want the clicked Folder", a.modal.sources)
-	}
-}
-
-// TestContextMenuParentRow checks the parent row, which has nothing to act
-// on, keeps a menu with its items disabled.
-func TestContextMenuParentRow(t *testing.T) {
-	a := fixture(t)
-	tt := ui.NewTester(a.view, 1100, 720)
-	if err := tt.RightClick(".."); err != nil {
-		t.Fatal(err)
-	}
-	menu := tt.Menu()
-	if len(menu) == 0 {
-		t.Fatal("the parent row has no menu")
-	}
-	if err := tt.ChooseMenuItem("Copy Path"); err == nil {
-		t.Fatalf("Copy Path was choosable on the parent row (menu %v)", menu)
-	}
-	// Open Terminal Here does not act on an entry, so it stays available.
-	tt.CloseMenu()
-	if err := tt.RightClick(".."); err != nil {
-		t.Fatal(err)
-	}
-	if err := tt.ChooseMenuItem("Open Terminal Here"); err != nil {
-		t.Fatalf("Open Terminal Here on the parent row: %v", err)
 	}
 }
 
@@ -249,7 +216,6 @@ func TestContextMenuMovesHighlight(t *testing.T) {
 		a.view(c)
 		presented++
 	}, 1100, 720)
-	a.current().cursor = 1 // Folder
 	tt.Frame()
 	if got := rowBackground(t, tt.Image(), tt, "hello.txt"); got == want {
 		t.Fatalf("hello.txt already shows as chosen before any right-click: %s", got)
@@ -282,7 +248,7 @@ func TestContextMenuAlreadyFocusedRow(t *testing.T) {
 		a.view(c)
 		presented++
 	}, 1100, 720)
-	a.current().cursor = 2 // hello.txt
+	a.current().cursor = 1 // hello.txt
 	tt.Frame()
 	presented = 0
 	if err := tt.RightClick("hello.txt"); err != nil {

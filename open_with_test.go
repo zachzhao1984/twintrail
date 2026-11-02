@@ -12,7 +12,7 @@ import (
 
 func TestOpenWithSelection(t *testing.T) {
 	a := fixture(t)
-	a.current().cursor = 2 // hello.txt, after parent and Folder
+	a.current().cursor = 1 // hello.txt
 	a.discoverApplications = func(paths []string) ([]openWithApplication, error) {
 		if len(paths) != 1 {
 			t.Fatalf("selection: %v", paths)
@@ -54,7 +54,7 @@ func TestOpenWithSelection(t *testing.T) {
 
 func TestOpenWithDiscardClosedPicker(t *testing.T) {
 	a := fixture(t)
-	a.current().cursor = 2
+	a.current().cursor = 1
 	completions := make(chan func(), 1)
 	a.update = func(done func()) { completions <- done }
 	a.discoverApplications = func([]string) ([]openWithApplication, error) { return []openWithApplication{{Name: "TextEdit"}}, nil }
@@ -70,7 +70,7 @@ func TestOpenWithDiscardClosedPicker(t *testing.T) {
 
 func TestOpenWithCachedList(t *testing.T) {
 	a := fixture(t)
-	a.current().cursor = 2
+	a.current().cursor = 1
 	calls := 0
 	a.discoverApplications = func([]string) ([]openWithApplication, error) {
 		calls++
@@ -89,7 +89,7 @@ func TestOpenWithCachedList(t *testing.T) {
 
 func TestOpenWithListBeforeIcons(t *testing.T) {
 	a := fixture(t)
-	a.current().cursor = 2
+	a.current().cursor = 1
 	updates := make(chan func(), 8)
 	a.update = func(done func()) { updates <- done }
 	a.discoverApplications = func([]string) ([]openWithApplication, error) {
@@ -127,14 +127,14 @@ func TestOpenWithListBeforeIcons(t *testing.T) {
 
 func TestOpenWithCacheUsesSelectionAndRefreshes(t *testing.T) {
 	a := fixture(t)
-	a.current().cursor = 2
+	a.current().cursor = 1
 	calls := 0
 	a.discoverApplications = func(paths []string) ([]openWithApplication, error) {
 		calls++
 		return []openWithApplication{{Name: filepath.Base(paths[0]), Default: true}}, nil
 	}
 	a.openWith()
-	a.current().cursor = 1
+	a.current().cursor = 0 // Folder
 	a.openWith()
 	if calls != 2 || a.modal.applications[0].Name != "Folder" {
 		t.Fatal("cached applications reused for another selection")

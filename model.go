@@ -159,9 +159,6 @@ func readDirectory(path string, hidden bool) ([]entry, error) {
 		return nil, err
 	}
 	out := []entry{}
-	if filepath.Dir(path) != path {
-		out = append(out, entry{name: "..", dir: true})
-	}
 	for _, d := range ds {
 		if !hidden && strings.HasPrefix(d.Name(), ".") {
 			continue
@@ -178,12 +175,6 @@ func readDirectory(path string, hidden bool) ([]entry, error) {
 func sortEntries(es []entry, desc bool) {
 	sort.SliceStable(es, func(i, j int) bool {
 		a, b := es[i], es[j]
-		if a.name == ".." {
-			return true
-		}
-		if b.name == ".." {
-			return false
-		}
 		if a.dir != b.dir {
 			return a.dir
 		}

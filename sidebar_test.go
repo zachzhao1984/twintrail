@@ -594,6 +594,7 @@ func TestFavoritesUseTheirOwnIcon(t *testing.T) {
 func TestViewModesSwitch(t *testing.T) {
 	a := fixture(t)
 	a.settingsWriter.save = func(session) {}
+	os.Mkdir(filepath.Join(a.panes[0].tabs[0].path, "Folder", "Inner"), 0755)
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()
 	if !tt.HasText("Name") || !tt.HasText("Modified") {
@@ -648,5 +649,37 @@ func TestViewModesSwitch(t *testing.T) {
 	}
 	if got := a.snapshotSession().Workspaces[0].Panes[0].Tabs[0].View; got != uint8(asList) {
 		t.Fatalf("session keeps view %v", got)
+	}
+}
+
+// TestNoParentRow checks the views of a folder show its entries alone, without
+// the row of the parent folder the older views began with.
+func TestNoParentRow(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	if tt.HasText("..") {
+		t.Fatalf("the list shows a parent row: %v", tt.Texts())
+	}
+	if len(a.current().entries) != 2 {
+		t.Fatalf("entries = %v", a.current().entries)
+	}
+	a.setViewMode(0, asIcons)
+	tt.Frame()
+	if tt.HasText("..") {
+		t.Fatal("the icon view shows a parent row")
+	}
+	a.setViewMode(0, asColumns)
+	tt.Frame()
+	if tt.HasText("..") {
+		t.Fatal("the column view shows a parent row")
+	}
+	// Going up still works, without a row of its own to click.
+	before := a.current().path
+	a.load(a.current(), filepath.Dir(before))
+	tt.Frame()
+	if got, want := a.current().path, filepath.Dir(before); got != want {
+		t.Fatalf("path = %q, want %q", got, want)
 	}
 }
