@@ -1,10 +1,13 @@
 package main
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -749,6 +752,10 @@ func TestPinToFavorites(t *testing.T) {
 			t.Fatalf("mode %v: %v", mode, err)
 		}
 		menu := tt.Menu()
+		if len(menu) == 0 {
+			tt.Frame()
+			menu = tt.Menu()
+		}
 		found := false
 		for _, item := range menu {
 			if item == "Pin to Favorites" {
@@ -851,5 +858,116 @@ func TestTabDragsBetweenPanes(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("Second Folder") {
 		t.Fatalf("the moved tab's folder is not shown: %v", tt.Texts())
+	}
+}
+
+// TestCompressPacksSelection checks the menus' Compress writes one zip beside
+// the first of the entries it was opened on, whose entries walk the folders,
+// and that the menu acts on the entry it was opened on in every view.
+func TestCompressPacksSelection(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	dir := a.panes[0].tabs[0].path
+	os.MkdirAll(filepath.Join(dir, "Folder", "Inner"), 0755)
+	os.WriteFile(filepath.Join(dir, "Folder", "Inner", "note.txt"), []byte("note"), 0644)
+	os.WriteFile(filepath.Join(dir, "Folder", "top.txt"), []byte("top"), 0644)
+	a.load(a.current(), dir)
+	a.favorites = nil
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	for _, mode := range []viewMode{asList, asIcons, asColumns} {
+		a.setViewMode(0, mode)
+		tt.Frame()
+		if err := tt.RightClick("Folder"); err != nil {
+			t.Fatalf("mode %v: %v", mode, err)
+		}
+		menu := tt.Menu()
+		if len(menu) == 0 {
+			tt.Frame()
+			menu = tt.Menu()
+		}
+		if !slices.Contains(menu, "Compress") || !slices.Contains(menu, "Open With…") {
+			t.Fatalf("mode %v lacks Compress or Open With…: %v", mode, menu)
+		}
+		if err := tt.ChooseMenuItem("Compress"); err != nil {
+			t.Fatalf("mode %v: %v", mode, err)
+		}
+		tt.Frame()
+		for a.busy {
+			tt.Advance(time.Second)
+			tt.Frame()
+		}
+		zipPath := filepath.Join(dir, "Folder.zip")
+		if _, err := os.Lstat(zipPath); err != nil {
+			t.Fatalf("mode %v wrote no zip: %v", mode, err)
+		}
+		// The zip holds Folder's entries under its name.
+		r, err := zip.OpenReader(zipPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		names := []string{}
+		for _, f := range r.File {
+			names = append(names, f.Name)
+		}
+		r.Close()
+		if !slices.Contains(names, "Folder/top.txt") || !slices.Contains(names, "Folder/Inner/note.txt") {
+			t.Fatalf("mode %v zip holds %v", mode, names)
+		}
+		if err := tt.RightClick("Folder"); err != nil {
+			t.Fatalf("mode %v: %v", mode, err)
+		}
+		if err := tt.ChooseMenuItem("Open With…"); err != nil {
+			t.Fatalf("mode %v: %v", mode, err)
+		}
+		tt.Frame()
+		if a.modal == nil || a.modal.kind != "Open With" {
+			t.Fatalf("mode %v opened no Open With dialog: %+v", mode, a.modal)
+		}
+		a.modal = nil
+		tt.Frame()
+		os.Remove(zipPath)
+	}
+	// Compressing a file zips the file alone.
+	a.setViewMode(0, asList)
+	tt.Frame()
+	if err := tt.RightClick("hello.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Compress"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	for a.busy {
+		tt.Advance(time.Second)
+		tt.Frame()
+	}
+	r, err := zip.OpenReader(filepath.Join(dir, "hello.txt.zip"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if len(r.File) != 1 || r.File[0].Name != "hello.txt" {
+		t.Fatalf("the zip of a file holds %v", r.File)
+	}
+	// An existing zip is not overwritten.
+	before, _ := os.Stat(filepath.Join(dir, "hello.txt.zip"))
+	if err := tt.RightClick("hello.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Compress"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	for a.busy {
+		tt.Advance(time.Second)
+		tt.Frame()
+	}
+	if a.status == "Compress completed" {
+		t.Fatal("an existing zip was overwritten")
+	}
+	after, _ := os.Stat(filepath.Join(dir, "hello.txt.zip"))
+	if after.ModTime() != before.ModTime() {
+		t.Fatal("an existing zip was rewritten")
 	}
 }

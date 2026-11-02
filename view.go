@@ -264,11 +264,19 @@ func (a *app) fileMenuAt(c *ui.Context, m *ui.Menu, index int, path string) {
 		}
 	}
 	m.Separator()
+	if m.Item("Open With…").Disabled(a.busy || none).Chosen() {
+		opened := append([]string(nil), paths...)
+		a.deferAction(c, func() { a.openWithFor(opened) })
+	}
 	if m.Item("Reveal in Finder").Disabled(none).Chosen() {
 		a.launch("open", "-R", paths[0])
 	}
 	if m.Item("Copy Path").Disabled(a.busy || none).Chosen() {
 		c.Services().WriteClipboard(joinedPaths(paths))
+	}
+	if m.Item("Compress").Disabled(a.busy || none).Chosen() {
+		sources := append([]string(nil), paths...)
+		a.deferAction(c, func() { a.compress(sources) })
 	}
 	if len(paths) == 1 && isDirectory(paths[0]) {
 		// One folder can join the Favorites, which a pinned one has.
@@ -356,6 +364,29 @@ func (a *app) dialogView(c *ui.Context) {
 				})
 			}
 		})
+	})
+}
+
+// compress packs the paths into one zip beside the first of them, as the
+// menu's Compress does, loading the pane when it has written it.
+func (a *app) compress(sources []string) {
+	if len(sources) == 0 {
+		return
+	}
+	a.busy = true
+	a.status = "Compress…"
+	a.job(func() func() {
+		err := perform(&dialog{kind: "Compress", sources: sources})
+		return func() {
+			a.busy = false
+			if err != nil {
+				a.status = err.Error()
+				return
+			}
+			a.status = "Compress completed"
+			t := a.current()
+			a.load(t, t.path)
+		}
 	})
 }
 

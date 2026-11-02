@@ -25,7 +25,12 @@ func applicationSelectionKey(paths []string) string {
 	return string(key)
 }
 func (a *app) openWith() {
-	paths := a.targets()
+	a.openWithFor(a.targets())
+}
+
+// openWithFor opens the Open With dialog over the paths given, which a menu
+// opened on one entry names; openWith opens it over the pane's targets.
+func (a *app) openWithFor(paths []string) {
 	if len(paths) == 0 {
 		return
 	}

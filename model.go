@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"fmt"
 	"io"
 	"os"
@@ -311,7 +312,7 @@ func (a *app) targets() []string {
 // askFor opens the dialog of kind over the paths given, which a menu opened on
 // one entry names; ask opens it over the pane's targets.
 func (a *app) askFor(kind string, sources []string) {
-	if (kind == "Copy" || kind == "Move" || kind == "Rename" || kind == "Move to Trash" || kind == "Delete") && len(sources) == 0 {
+	if (kind == "Copy" || kind == "Move" || kind == "Rename" || kind == "Move to Trash" || kind == "Delete" || kind == "Compress") && len(sources) == 0 {
 		a.status = "Select a file or folder first"
 		return
 	}
@@ -324,7 +325,7 @@ func (a *app) askFor(kind string, sources []string) {
 func (a *app) ask(kind string) {
 	t := a.current()
 	d := &dialog{open: true, kind: kind, sources: a.targets(), target: t.path}
-	if (kind == "Copy" || kind == "Move" || kind == "Rename" || kind == "Move to Trash" || kind == "Delete") && len(d.sources) == 0 {
+	if (kind == "Copy" || kind == "Move" || kind == "Rename" || kind == "Move to Trash" || kind == "Delete" || kind == "Compress") && len(d.sources) == 0 {
 		a.status = "Select a file or folder first"
 		return
 	}
@@ -412,6 +413,17 @@ func perform(d *dialog) error {
 			return fmt.Errorf("Destination already exists")
 		}
 		return os.Rename(d.sources[0], target)
+	case "Compress":
+		// One zip beside the first source, named for it, which skips an
+		// existing one, as Finder's Compress does.
+		if len(d.sources) == 0 {
+			return fmt.Errorf("Nothing to compress")
+		}
+		zipPath := d.sources[0] + ".zip"
+		if _, err := os.Lstat(zipPath); !os.IsNotExist(err) {
+			return fmt.Errorf("Destination already exists: %s", zipPath)
+		}
+		return writeZip(zipPath, d.sources)
 	case "Copy", "Move", "Move to Trash":
 		target := d.value
 		if d.kind == "Move to Trash" {
@@ -469,6 +481,90 @@ func validateDestination(src, dst string) error {
 	}
 	return nil
 }
+
+// writeZip packs the sources into the zip at path: the folders among them
+// recursively, their names as the archive's root folders, as Finder's Compress
+// does.
+func writeZip(path string, sources []string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	w := zip.NewWriter(f)
+	ok := false
+	for _, src := range sources {
+		if err := zipEntry(w, src, filepath.Base(src)); err != nil {
+			w.Close()
+			f.Close()
+			os.Remove(path)
+			return err
+		}
+		ok = true
+	}
+	if err := w.Close(); err != nil {
+		f.Close()
+		os.Remove(path)
+		return err
+	}
+	if err := f.Close(); err != nil {
+		os.Remove(path)
+		return err
+	}
+	if !ok {
+		os.Remove(path)
+		return fmt.Errorf("Nothing to compress")
+	}
+	return nil
+}
+
+// zipEntry writes one entry of a zip: files with their bytes, folders
+// recursively, and symlinks as files of where they point, as a zip cannot
+// hold a symlink Finder's Compress would keep.
+func zipEntry(w *zip.Writer, src, name string) error {
+	info, err := os.Lstat(src)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(src)
+		if err != nil {
+			return err
+		}
+		return zipFile(w, target, name, info.ModTime())
+	}
+	if info.IsDir() {
+		ds, err := os.ReadDir(src)
+		if err != nil {
+			return err
+		}
+		for _, d := range ds {
+			if err := zipEntry(w, filepath.Join(src, d.Name()), name+"/"+d.Name()); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if !info.Mode().IsRegular() {
+		return nil
+	}
+	return zipFile(w, src, name, info.ModTime())
+}
+
+// zipFile writes one file of a zip, its entry dated at the file's modtime.
+func zipFile(w *zip.Writer, src, name string, mod time.Time) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := w.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Deflate, Modified: mod})
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(out, in)
+	return err
+}
+
 func copyEntry(src, dst string) error {
 	info, err := os.Lstat(src)
 	if err != nil {

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The entries' menus gain Open With…, which opens the picker over the entry it
+  was opened on, and Compress, which packs the entries into one zip beside the
+  first of them, named for it, whose folders walk their entries; an existing
+  zip is left alone. Every view's entries carry both.
+
 - Updated myGO to v0.7.4. The migration to checked elements names nothing this
   app changes: `go tool mygo migrate-ui` rewrites no file, and `go tool mygo
   vet` and the tests pass as they did.
