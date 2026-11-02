@@ -161,7 +161,6 @@ func (a *app) paneView(c *ui.Context, index int) {
 			})
 		}
 		a.fonts.Breadcrumbs.apply(ui.Row(c).Height(fontHeight(a.fonts.Breadcrumbs, 24)).PaddingX(6).Gap(4).AlignItems(ui.Center)).Children(func() {
-			ui.Box(c).Grow(1)
 			ui.ButtonBase(c).Label(fmt.Sprintf("Root %d", index)).Children(func() { ui.Text(c, "/").TextColor(theme.TextMuted) }).OnClick(func() { a.active = index; a.load(t, "/") })
 			parts := strings.Split(strings.Trim(t.path, "/"), "/")
 			start := 0
@@ -180,6 +179,7 @@ func (a *app) paneView(c *ui.Context, index int) {
 				ui.Text(c, "›").TextColor(theme.TextMuted)
 				ui.ButtonBase(c).PaddingX(3).Children(func() { ui.Text(c, part).TextColor(theme.TextMuted) }).OnClick(func() { a.active = index; a.load(t, path) })
 			}
+			ui.Box(c).Grow(1)
 			a.viewSwitch(c, index)
 		})
 		header := colors.strip
