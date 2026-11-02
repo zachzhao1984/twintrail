@@ -269,31 +269,26 @@ func TestAppearanceSwitchesLook(t *testing.T) {
 	}
 }
 
-// TestCmdBackspaceTrashes checks Cmd+Backspace opens the Move to Trash dialog
-// over the selection, which confirming trashes.
+// TestCmdBackspaceTrashes checks Cmd+Backspace trashes the selection without a
+// dialog: the file goes to the Trash, and the panes reload with what is left.
 func TestCmdBackspaceTrashes(t *testing.T) {
 	a := fixture(t)
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()
-	if a.modal != nil {
-		t.Fatal("a dialog is open before the shortcut")
-	}
+	trashed := a.targets()[0]
 	tt.Key(ui.Cmd, ui.KeyBackspace)
 	tt.Frame()
-	if a.modal == nil || a.modal.kind != "Move to Trash" {
-		t.Fatalf("Cmd+Backspace opened %+v, want Move to Trash", a.modal)
+	if a.modal != nil {
+		t.Fatalf("Cmd+Backspace opened %v, want no dialog", a.modal)
 	}
-	if got, want := a.modal.sources, a.targets(); len(got) != 1 || got[0] != want[0] {
-		t.Fatalf("sources = %v, want the selection %v", got, want)
-	}
-	trashed := a.modal.sources[0]
-	a.confirm()
-	tt.Frame()
 	for a.busy {
 		tt.Advance(time.Second)
 		tt.Frame()
 	}
 	if _, err := os.Stat(trashed); !os.IsNotExist(err) {
 		t.Fatalf("the selection survived the Trash: %v", err)
+	}
+	if a.status != "Move to Trash completed" {
+		t.Fatalf("status = %q", a.status)
 	}
 }

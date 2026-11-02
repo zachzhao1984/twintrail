@@ -370,25 +370,50 @@ func (a *app) confirm() {
 	if a.busy {
 		return
 	}
+	if d.kind == "Move to Trash" {
+		a.modal = nil
+		a.trash(d.sources)
+		return
+	}
 	a.busy = true
 	a.modal = nil
 	a.status = d.kind + "…"
 	a.job(func() func() {
 		err := perform(d)
-		return func() {
-			a.busy = false
-			if err != nil {
-				a.status = err.Error()
-			} else {
-				a.status = d.kind + " completed"
-			}
-			for i := range a.panes {
-				for _, t := range a.panes[i].tabs {
-					a.load(t, t.path)
-				}
+		return a.doneTransfer(d.kind, err)
+	})
+}
+
+// trash moves the paths into the Trash without a dialog, as ⌘⌫ does, and
+// reloads the panes with what the Trash left beside.
+func (a *app) trash(paths []string) {
+	if len(paths) == 0 || a.busy {
+		return
+	}
+	a.busy = true
+	a.status = "Move to Trash…"
+	a.job(func() func() {
+		err := perform(&dialog{kind: "Move to Trash", sources: paths})
+		return a.doneTransfer("Move to Trash", err)
+	})
+}
+
+// doneTransfer tells the transfer of kind has settled: the panes reload, and
+// the status bar names what went wrong.
+func (a *app) doneTransfer(kind string, err error) func() {
+	return func() {
+		a.busy = false
+		if err != nil {
+			a.status = err.Error()
+		} else {
+			a.status = kind + " completed"
+		}
+		for i := range a.panes {
+			for _, t := range a.panes[i].tabs {
+				a.load(t, t.path)
 			}
 		}
-	})
+	}
 }
 func perform(d *dialog) error {
 	switch d.kind {

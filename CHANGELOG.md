@@ -2,8 +2,9 @@
 
 ## Unreleased
 
-- ⌘⌫ moves the selection to the Trash, as Finder's does: it opens the dialog
-  Move to Trash opens, which the confirmation empties into the Trash.
+- ⌘⌫ moves the selection to the Trash without a dialog, as Finder's does: the
+  panes reload with what the Trash left beside, and the status bar names what
+  went wrong. F8 keeps its dialog.
 
 - The entries' menus gain Open With…, which opens the picker over the entry it
   was opened on, and Compress, which packs the entries into one zip beside the
