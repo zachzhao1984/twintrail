@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Each tab shows its folder as a list, as icons in a grid or as columns, as
+  Finder's list, icon and column views do: the three buttons at the right end
+  of the breadcrumb row pick the mode, the one the tab is in carrying the
+  pressed look. The list keeps its Name, Size and Modified header, which the
+  other views drop; the columns open a folder's column beside as it is chosen,
+  and the mode is saved with the tab.
+
 - The file lists' header centers its labels, which the Name cell's baseline
   layout sat a little high beside the Size and Modified cells.
 

@@ -42,6 +42,9 @@ var (
 	iconDrive    = sidebarIcon(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15h18"/><path d="M7 18h.01M11 18h.01"/>`)
 	iconChevron  = sidebarIcon(`<path d="m9 6 6 6-6 6"/>`)
 	iconSidebar  = sidebarIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16"/><path d="M5.5 8.5h1.75M5.5 12h1.75M5.5 15.5h1.75"/>`)
+	iconIcons    = sidebarIcon(`<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>`)
+	iconRows     = sidebarIcon(`<path d="M4 6.5h16M4 12h16M4 17.5h16"/>`)
+	iconColumns  = sidebarIcon(`<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9.5 4v16M16.5 4v16"/>`)
 )
 
 // sidebarIcon draws an icon of the sidebar: the artwork is drawn in a 24 DIP

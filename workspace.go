@@ -17,7 +17,7 @@ func (a *app) captureLayout() ([2]savedPane, int, float32) {
 	for i, p := range a.panes {
 		panes[i].Current = p.current
 		for _, t := range p.tabs {
-			panes[i].Tabs = append(panes[i].Tabs, savedTab{Path: t.path, Hidden: t.hidden, Terminal: t.terminal.visible})
+			panes[i].Tabs = append(panes[i].Tabs, savedTab{Path: t.path, Hidden: t.hidden, Terminal: t.terminal.visible, View: uint8(t.view)})
 		}
 	}
 	return panes, a.active, a.split
@@ -120,7 +120,11 @@ func (a *app) applyWorkspace(w workspaceLayout, load bool) {
 			if st.Path == "" || !filepath.IsAbs(st.Path) {
 				continue
 			}
-			t := &tab{path: st.Path, hidden: st.Hidden, marked: map[string]bool{}}
+			view := viewMode(0)
+			if st.View <= uint8(asColumns) {
+				view = viewMode(st.View)
+			}
+			t := &tab{path: st.Path, hidden: st.Hidden, marked: map[string]bool{}, view: view}
 			t.terminal.visible = st.Terminal
 			tabs = append(tabs, t)
 		}

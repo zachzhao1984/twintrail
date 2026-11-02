@@ -11,6 +11,8 @@ type savedTab struct {
 	Path     string
 	Hidden   bool
 	Terminal bool
+	// View is how the tab showed its folder, list when zero.
+	View uint8 `json:"view,omitempty"`
 }
 type savedPane struct {
 	Tabs    []savedTab

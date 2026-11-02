@@ -587,3 +587,66 @@ func TestFavoritesUseTheirOwnIcon(t *testing.T) {
 		t.Fatal("a location's folder does not take the plain icon")
 	}
 }
+
+// TestViewModesSwitch checks the buttons at the right end of the breadcrumb row
+// show a pane's folder as a list, as icons and as columns, that the mode a tab
+// is in has the pressed look, and that the choice is kept.
+func TestViewModesSwitch(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	if !tt.HasText("Name") || !tt.HasText("Modified") {
+		t.Fatalf("the list view has no header: %v", tt.Texts())
+	}
+	if a.panes[0].tabs[0].view != asList {
+		t.Fatalf("a tab starts as %v", a.panes[0].tabs[0].view)
+	}
+	if err := tt.Click("As Icons"); err != nil {
+		t.Fatalf("%v (labels %v)", err, tt.Texts())
+	}
+	tt.Frame()
+	// The other pane keeps its header, whose labels Find returns first: the
+	// first pane's is gone when its label sits in the first pane's half.
+	if a.panes[0].tabs[0].view != asIcons {
+		t.Fatalf("icons mode: view=%v", a.panes[0].tabs[0].view)
+	}
+	if r, ok := tt.Find("Modified"); ok && r.X < 550 {
+		t.Fatalf("the first pane still shows its header at %v", r)
+	}
+	if !tt.HasText("hello.txt") || !tt.HasText("Folder") {
+		t.Fatalf("icons mode lost the entries: %v", tt.Texts())
+	}
+	if err := tt.Click("As Columns"); err != nil {
+		t.Fatalf("%v (labels %v)", err, tt.Texts())
+	}
+	tt.Frame()
+	if a.panes[0].tabs[0].view != asColumns {
+		t.Fatalf("columns mode: view=%v", a.panes[0].tabs[0].view)
+	}
+	if r, ok := tt.Find("Modified"); ok && r.X < 550 {
+		t.Fatalf("the first pane still shows its header at %v", r)
+	}
+	if !tt.HasText("hello.txt") {
+		t.Fatalf("columns mode lost the entries: %v", tt.Texts())
+	}
+	// Choosing the folder in the pane's column opens its column beside.
+	if err := tt.Click("Folder"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("Folder") {
+		t.Fatal("the column of the folder chosen is gone")
+	}
+	// The tabs keep their modes apart, and the choice is saved.
+	if err := tt.Click("As List"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("Modified") {
+		t.Fatal("the list view's header is gone")
+	}
+	if got := a.snapshotSession().Workspaces[0].Panes[0].Tabs[0].View; got != uint8(asList) {
+		t.Fatalf("session keeps view %v", got)
+	}
+}

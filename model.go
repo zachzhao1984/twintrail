@@ -21,6 +21,17 @@ type entry struct {
 	dir      bool
 	modified time.Time
 }
+
+// viewMode is how a pane shows the folder it holds, as Finder's: a list of
+// rows, icons in a grid, or columns of the folders along the path.
+type viewMode uint8
+
+const (
+	asList viewMode = iota
+	asIcons
+	asColumns
+)
+
 type tab struct {
 	terminal   tabTerminal
 	path       string
@@ -30,12 +41,15 @@ type tab struct {
 	hidden     bool
 	filter     string
 	list       ui.ListState
+	grid       ui.GridState
+	columns    [8]column
 	generation int
 	loading    bool
 	err        string
 	disk       string
 	searchOpen bool
 	descending bool
+	view       viewMode
 }
 type pane struct {
 	tabs    []*tab
