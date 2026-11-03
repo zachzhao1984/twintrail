@@ -448,8 +448,6 @@ func (a *app) setViewMode(index int, mode viewMode) {
 // paneDrop takes the entries the other pane drags, and holds the drop target
 // the pane's views share: the whole pane's folder takes them.
 func (a *app) paneDrop(index int, pane ui.Element) {
-	if _, over := ui.DragOver[entryDrag](pane); over {
-	}
 	if drag, ok := ui.Drop[entryDrag](pane); ok {
 		a.moveDragged(index, drag)
 	}
@@ -530,7 +528,7 @@ func (a *app) filesList(c *ui.Context, index int, t *tab, es []entry, active boo
 			// entry a double click on it presses, whose count its press
 			// reports before the click's release.
 			path := filepath.Join(t.path, e.name)
-			row.Drag(entryDrag{from: index, paths: a.dragPaths(e.name)})
+			row.Drag(entryDrag{from: index, paths: a.dragPaths(index, e.name)})
 			switch {
 			case row.DoubleClicked():
 				t.doublePress = path
@@ -601,7 +599,7 @@ func (a *app) filesIcons(c *ui.Context, index int, t *tab, es []entry, active bo
 			// grid's cell would: it chooses its cell itself, and opens the
 			// entry a double click on it presses.
 			path := filepath.Join(t.path, e.name)
-			cell.Drag(entryDrag{from: index, paths: a.dragPaths(e.name)})
+			cell.Drag(entryDrag{from: index, paths: a.dragPaths(index, e.name)})
 			switch {
 			case cell.DoubleClicked():
 				t.doublePress = path

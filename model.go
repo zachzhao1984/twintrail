@@ -261,7 +261,6 @@ func (a *app) loadKeeping(t *tab, path string, keep bool) {
 			t.marked = map[string]bool{}
 			t.filter = ""
 			t.err = ""
-			println("DBG loadKeeping done: was", was, "n", len(t.entries), "cursor", t.cursor)
 			// The cursor takes the entry that took the one it was on: the
 			// next, where the folder still holds one at or after it.
 			if was != "" {
@@ -334,10 +333,12 @@ func (a *app) launch(command string, args ...string) {
 	})
 }
 
-// dragPaths lists what a drag of one entry carries: the marked entries when
-// the entry is one of them, the entry alone otherwise, as Finder's drags do.
-func (a *app) dragPaths(name string) []string {
-	t := a.current()
+// dragPaths lists what a drag of one entry of the pane index carries: the
+// pane's marked entries when the entry is one of them, the entry alone
+// otherwise, as Finder's drags do.
+func (a *app) dragPaths(index int, name string) []string {
+	p := &a.panes[index]
+	t := p.tabs[p.current]
 	if !t.marked[name] {
 		return []string{filepath.Join(t.path, name)}
 	}
