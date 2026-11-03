@@ -16,6 +16,7 @@ func main() {
 	home, _ := os.UserHomeDir()
 	a := newApp(home, home)
 	a.restore()
+	initPreviewApp(a)
 	setSystemAppearance(a.light)
 	mygo.App.WhenReady(func() {
 		w := mygo.NewWindow(mygo.WindowOptions{Title: "Twintrail", Width: 1240, Height: 760, MinWidth: 960, MinHeight: 420, StateKey: "main", TitleBarStyle: mygo.TitleBarHidden, TrafficLightPosition: &mygo.Point{X: 10, Y: 8}, BackgroundColor: cssColor(a.colors().window), Content: ui.View(a.view)})
