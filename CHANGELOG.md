@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
 - The panes' entries drag between them: a row of the list or a cell of the
   icon view drags its selection — the marked entries when it is one of them —
