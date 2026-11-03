@@ -55,6 +55,9 @@ type tab struct {
 	// applies once the list has had its say: the list rewrites a cursor
 	// whose entry is gone to -1 as the frame that reads the folder builds.
 	pendingCursor *int
+	// doublePress is the folder a double click on its row pressed, which the
+	// release opens, as the row takes the list row's press to drag it.
+	doublePress string
 }
 type pane struct {
 	tabs    []*tab

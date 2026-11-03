@@ -153,9 +153,6 @@ func (a *app) paneView(c *ui.Context, index int) {
 				c.Key(fmt.Sprintf("tab-%p", tab))
 				row := ui.Row(c).Grow(1).Height(tabStripHeight).Background(bg)
 				row.Drag(tabDrag{from: index, tab: tab})
-
-				if row.Dragging() {
-				}
 				row.Children(func() {
 					c.Key(fmt.Sprintf("select-tab-%p", tab))
 					tabFont.apply(ui.ButtonBase(c).Grow(1).Height(tabStripHeight).PaddingX(10).AlignItems(ui.Center)).Children(func() {
@@ -528,9 +525,26 @@ func (a *app) filesList(c *ui.Context, index int, t *tab, es []entry, active boo
 		}
 		row := a.fonts.Files.apply(ui.Row(c).Height(rowHeight).Background(bg).AlignItems(ui.Center))
 		if e.name != ".." {
-			paths := a.dragPaths(e.name)
-			row.Drag(entryDrag{from: index, paths: paths})
-
+			// The row drags to the other pane, which takes the press the
+			// list's row would: it chooses its row itself, and opens the
+			// entry a double click on it presses, whose count its press
+			// reports before the click's release.
+			path := filepath.Join(t.path, e.name)
+			row.Drag(entryDrag{from: index, paths: a.dragPaths(e.name)})
+			switch {
+			case row.DoubleClicked():
+				t.doublePress = path
+			case row.Dragging():
+				t.doublePress = ""
+			}
+			row.OnClick(func() {
+				a.active, a.focus = index, index+1
+				t.cursor = r.Index
+				if t.doublePress == path {
+					t.doublePress = ""
+					a.open()
+				}
+			})
 		}
 		row.Children(func() {
 			ui.Row(c).Grow(1).PaddingX(4).Gap(4).AlignItems(ui.Center).Children(func() { a.fileIcon(c, e); ui.Text(c, e.name).TextColor(color).Grow(1).MinWidth(0).SingleLine() })
@@ -583,7 +597,25 @@ func (a *app) filesIcons(c *ui.Context, index int, t *tab, es []entry, active bo
 		}
 		cell := a.fonts.Files.apply(ui.Column(c).Fill().Padding(10, 6).Gap(8).AlignItems(ui.Center))
 		if e.name != ".." {
+			// The cell drags to the other pane, which takes the press the
+			// grid's cell would: it chooses its cell itself, and opens the
+			// entry a double click on it presses.
+			path := filepath.Join(t.path, e.name)
 			cell.Drag(entryDrag{from: index, paths: a.dragPaths(e.name)})
+			switch {
+			case cell.DoubleClicked():
+				t.doublePress = path
+			case cell.Dragging():
+				t.doublePress = ""
+			}
+			cell.OnClick(func() {
+				a.active, a.focus = index, index+1
+				t.cursor = i
+				if t.doublePress == path {
+					t.doublePress = ""
+					a.open()
+				}
+			})
 		}
 		cell.Children(func() {
 			ui.Box(c).Grow(1).AlignItems(ui.Center).Children(func() { a.fileIconAt(c, e, 48, 48) })
