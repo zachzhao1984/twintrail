@@ -562,10 +562,7 @@ func (a *app) filesList(c *ui.Context, index int, t *tab, es []entry, active boo
 		}).ContextMenu(func(m *ui.Menu) { a.fileMenu(c, m, index, r.Index) })
 	}).OnClick(func() { a.active = index; a.focus = index + 1 }).OnChange(func() { a.active = index }).OnSubmit(func() { a.active = index; a.open() }).OnShortcut(0, ui.KeyBackspace, func() { a.active = index; a.load(t, filepath.Dir(t.path)) }).OnShortcut(0, ui.KeySpace, func() {
 		a.active = index
-		targets := a.targets()
-		if len(targets) > 0 {
-			a.launch("qlmanage", append([]string{"-p"}, targets...)...)
-		}
+		a.preview(a.targets())
 	}).OnShortcut(0, ui.KeyInsert, func() {
 		if t.cursor >= 0 && t.cursor < len(es) && es[t.cursor].name != ".." {
 			e := es[t.cursor]
@@ -624,10 +621,7 @@ func (a *app) filesIcons(c *ui.Context, index int, t *tab, es []entry, active bo
 		})
 	}).Grow(1).FocusRing(false).FocusBind(&a.focus, index+1).ItemKey(func(i int) any { return es[i].name }).OnChange(func() { a.active = index }).OnSubmit(func() { a.active = index; a.open() }).OnShortcut(0, ui.KeyBackspace, func() { a.active = index; a.load(t, filepath.Dir(t.path)) }).OnShortcut(0, ui.KeySpace, func() {
 		a.active = index
-		targets := a.targets()
-		if len(targets) > 0 {
-			a.launch("qlmanage", append([]string{"-p"}, targets...)...)
-		}
+		a.preview(a.targets())
 	}).OnShortcut(0, ui.KeyInsert, func() {
 		if t.cursor >= 0 && t.cursor < len(es) && es[t.cursor].name != ".." {
 			e := es[t.cursor]

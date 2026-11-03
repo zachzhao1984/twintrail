@@ -15,7 +15,7 @@ A macOS native dual-pane file manager built on Go and myGO v0.7.3. Fully native 
 - Copy, move, rename, create nested directories, move to the macOS Trash (⌘⌫, at once, or F8, after a confirmation), with confirmation dialogs and error display. Entries drag between the panes, which moves them into the other pane's folder.
 - File operations and directory reads run in the background; stale directory read results are discarded.
 - Copy preserves symlinks, refuses to overwrite an existing target, and refuses to copy or move a directory into itself. Cross-volume moves currently show an error and do not fall back to copy and delete.
-- Open with the system default application, Quick Look preview, reveal in Finder, external Terminal, native context menu. Pin to Favorites pins a folder to the sidebar from any view's menu, and Compress packs the entries into one zip beside them. The search box is hidden by default, shown with ⌘F or /. Copy Path writes the absolute paths of the marked entries to the pasteboard, one per line, each quoted so pasting into a terminal is safe.
+- Open with the system default application, Quick Look preview (Space toggles it), reveal in Finder, external Terminal, native context menu. Pin to Favorites pins a folder to the sidebar from any view's menu, and Compress packs the entries into one zip beside them. The search box is hidden by default, shown with ⌘F or /. Copy Path writes the absolute paths of the marked entries to the pasteboard, one per line, each quoted so pasting into a terminal is safe.
 
 ## Appearance
 

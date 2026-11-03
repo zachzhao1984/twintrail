@@ -77,6 +77,10 @@ type dialog struct {
 	// from its trashItem so that a test without the running app can stand in.
 	trashItem func(string) error
 }
+type previewProcess struct {
+	mu  sync.Mutex
+	cmd *exec.Cmd
+}
 type app struct {
 	discoverApplications func([]string) ([]openWithApplication, error)
 	// trashItem moves one path into the system's Trash, whose Put Back the
@@ -108,6 +112,7 @@ type app struct {
 	update              func(func())
 	closed              bool
 	newTerminal         func(string) (terminalSession, error)
+	previewPanel        previewProcess
 	terminalMenu        *mygo.MenuItem
 	closeTabMenu        *mygo.MenuItem
 	terminalJobs        sync.WaitGroup
@@ -322,6 +327,37 @@ func (a *app) open() {
 		a.launch("open", path)
 	}
 }
+
+// preview toggles the system preview of the paths, as Space does in Finder:
+// a press opens the panel, another closes it. The panel is qlmanage's, whose
+// process the app keeps to close.
+func (a *app) preview(paths []string) {
+	a.previewPanel.mu.Lock()
+	defer a.previewPanel.mu.Unlock()
+	if a.previewPanel.cmd != nil && a.previewPanel.cmd.Process != nil {
+		a.previewPanel.cmd.Process.Kill()
+		a.previewPanel.cmd = nil
+		return
+	}
+	if len(paths) == 0 {
+		return
+	}
+	cmd := exec.Command("qlmanage", append([]string{"-p"}, paths...)...)
+	if err := cmd.Start(); err != nil {
+		a.status = err.Error()
+		return
+	}
+	a.previewPanel.cmd = cmd
+	go func() {
+		cmd.Wait()
+		a.previewPanel.mu.Lock()
+		if a.previewPanel.cmd == cmd {
+			a.previewPanel.cmd = nil
+		}
+		a.previewPanel.mu.Unlock()
+	}()
+}
+
 func (a *app) launch(command string, args ...string) {
 	a.job(func() func() {
 		err := exec.Command(command, args...).Run()
