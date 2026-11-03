@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The panes' entries drag between them: a row of the list or a cell of the
+  icon view drags its selection — the marked entries when it is one of them —
+  and the other pane's folder takes them, moving as a drop of Finder's does.
+  The pane they left reloads with what moved away.
+
 - ⌘⌫ moves the selection to the Trash without a dialog, as Finder's does: the
   panes reload with what the Trash left beside, the cursor taking the entry
   that took the trashed one's place, and the status bar naming what went

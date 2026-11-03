@@ -331,6 +331,19 @@ func (a *app) launch(command string, args ...string) {
 	})
 }
 
+// dragPaths lists what a drag of one entry carries: the marked entries when
+// the entry is one of them, the entry alone otherwise, as Finder's drags do.
+func (a *app) dragPaths(name string) []string {
+	t := a.current()
+	if !t.marked[name] {
+		return []string{filepath.Join(t.path, name)}
+	}
+	if paths := a.markedPaths(); len(paths) > 0 {
+		return paths
+	}
+	return []string{filepath.Join(t.path, name)}
+}
+
 // markedPaths lists the entries the pane has marked, in the order the list
 // shows them.
 func (a *app) markedPaths() []string {

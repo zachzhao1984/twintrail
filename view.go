@@ -126,7 +126,9 @@ func (a *app) paneView(c *ui.Context, index int) {
 	theme, colors := c.Theme(), a.colors()
 	active := a.active == index
 	c.Key(fmt.Sprintf("pane-%d", index))
-	ui.Column(c).Fill().Gap(0).Disabled(a.modal != nil).Children(func() {
+	column := ui.Column(c).Fill().Gap(0).Disabled(a.modal != nil)
+	a.paneDrop(index, column)
+	column.Children(func() {
 		// The strip takes a tab dragged from either pane: one of its own
 		// reorders, one from the other pane moves across.
 		tabStripHeight := max(fontHeight(a.fonts.Tabs, 24), fontHeight(a.fonts.VirtualTabs, 24))
@@ -446,6 +448,31 @@ func (a *app) setViewMode(index int, mode viewMode) {
 	a.persistSettings(true)
 }
 
+// paneDrop takes the entries the other pane drags, and holds the drop target
+// the pane's views share: the whole pane's folder takes them.
+func (a *app) paneDrop(index int, pane ui.Element) {
+	if _, over := ui.DragOver[entryDrag](pane); over {
+	}
+	if drag, ok := ui.Drop[entryDrag](pane); ok {
+		a.moveDragged(index, drag)
+	}
+}
+
+// moveDragged moves the entries a drag carried into the pane's folder, as a
+// drop of Finder's does, and reloads both panes with what moved.
+func (a *app) moveDragged(index int, drag entryDrag) {
+	if drag.from == index || len(drag.paths) == 0 {
+		return
+	}
+	to := a.panes[index].tabs[a.panes[index].current].path
+	a.busy = true
+	a.status = fmt.Sprintf("Move %d item(s)…", len(drag.paths))
+	a.job(func() func() {
+		err := perform(&dialog{kind: "Move", sources: drag.paths, value: to})
+		return a.doneTransfer("Move", err)
+	})
+}
+
 // filesHeader draws the header of the list view, the Name, Size and Modified
 // labels of the columns under it, which sort by name on a click.
 func (a *app) filesHeader(c *ui.Context, t *tab, header ui.Color, sizeWidth, modifiedWidth float32) {
@@ -499,7 +526,13 @@ func (a *app) filesList(c *ui.Context, index int, t *tab, es []entry, active boo
 		if t.marked[e.name] && !(r.Selected() && active) {
 			color = colors.mark
 		}
-		a.fonts.Files.apply(ui.Row(c).Height(rowHeight).Background(bg).AlignItems(ui.Center)).Children(func() {
+		row := a.fonts.Files.apply(ui.Row(c).Height(rowHeight).Background(bg).AlignItems(ui.Center))
+		if e.name != ".." {
+			paths := a.dragPaths(e.name)
+			row.Drag(entryDrag{from: index, paths: paths})
+
+		}
+		row.Children(func() {
 			ui.Row(c).Grow(1).PaddingX(4).Gap(4).AlignItems(ui.Center).Children(func() { a.fileIcon(c, e); ui.Text(c, e.name).TextColor(color).Grow(1).MinWidth(0).SingleLine() })
 			size := martaSize(e.size)
 			if e.dir {
@@ -548,10 +581,14 @@ func (a *app) filesIcons(c *ui.Context, index int, t *tab, es []entry, active bo
 		if t.marked[e.name] {
 			color = colors.mark
 		}
-		a.fonts.Files.apply(ui.Column(c).Fill().Padding(10, 6).Gap(8).AlignItems(ui.Center).Children(func() {
+		cell := a.fonts.Files.apply(ui.Column(c).Fill().Padding(10, 6).Gap(8).AlignItems(ui.Center))
+		if e.name != ".." {
+			cell.Drag(entryDrag{from: index, paths: a.dragPaths(e.name)})
+		}
+		cell.Children(func() {
 			ui.Box(c).Grow(1).AlignItems(ui.Center).Children(func() { a.fileIconAt(c, e, 48, 48) })
 			ui.Text(c, e.name).TextColor(color).MaxLines(2).TextAlign(ui.Center).SingleLine()
-		})).ContextMenu(func(m *ui.Menu) {
+		}).ContextMenu(func(m *ui.Menu) {
 			a.active, a.focus = index, index+1
 			a.fileMenuAt(c, m, index, filepath.Join(t.path, e.name))
 		})
@@ -670,6 +707,13 @@ func (a *app) columnAt(t *tab, col *column) int {
 		}
 	}
 	return -1
+}
+
+// entryDrag is the entries of a pane being dragged to the other: the pane
+// they came from, so the drop moves rather than copies them, and the paths.
+type entryDrag struct {
+	from  int
+	paths []string
 }
 
 // tabDrag is a tab being dragged between the panes: the pane it came from and

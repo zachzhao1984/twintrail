@@ -971,3 +971,48 @@ func TestCompressPacksSelection(t *testing.T) {
 		t.Fatal("an existing zip was rewritten")
 	}
 }
+
+// TestEntryDragsBetweenPanes drags a file of the left pane onto the right
+// pane, which moves it into the right pane's folder; the pane it left reloads
+// without it.
+func TestEntryDragsBetweenPanes(t *testing.T) {
+	a := fixture(t)
+	a.settingsWriter.save = func(session) {}
+	dir := a.panes[0].tabs[0].path
+	os.WriteFile(filepath.Join(dir, "moved.txt"), []byte("x"), 0644)
+	a.load(a.current(), dir)
+	tt := ui.NewTester(a.view, 1100, 720)
+	tt.Frame()
+	src, ok := tt.Find("moved.txt")
+	if !ok {
+		t.Fatalf("no moved.txt: %v", tt.Texts())
+	}
+	// Drop on the right pane: its tab marks where its strip is.
+	right := a.panes[1].tabs[0].path
+	dst, ok := tt.Find("Close tab 1 in pane 2")
+	if !ok {
+		t.Fatalf("no pane 2 tab: %v", tt.Texts())
+	}
+	dx, dy := dst.X-60, dst.Y+200
+	tt.Press(src.X+src.W/2, src.Y+src.H/2)
+	tt.Frame()
+	tt.Move((src.X+dx)/2, dy)
+	tt.Frame()
+	tt.Move(dx, dy)
+	tt.Frame()
+	tt.Release(dx, dy)
+	tt.Frame()
+	tt.Frame()
+	for a.busy {
+		tt.Advance(time.Second)
+		tt.Frame()
+	}
+	tt.Frame()
+	tt.Frame()
+	if _, err := os.Stat(filepath.Join(dir, "moved.txt")); !os.IsNotExist(err) {
+		t.Fatalf("moved.txt stayed in the pane it left: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(right, "moved.txt")); err != nil {
+		t.Fatalf("moved.txt is not in the pane it joined: %v", err)
+	}
+}
