@@ -42,7 +42,6 @@ var (
 	iconDrive    = sidebarIcon(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15h18"/><path d="M7 18h.01M11 18h.01"/>`)
 	iconChevron  = sidebarIcon(`<path d="m9 6 6 6-6 6"/>`)
 	iconSidebar  = sidebarIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16"/><path d="M5.5 8.5h1.75M5.5 12h1.75M5.5 15.5h1.75"/>`)
-	iconIcons    = sidebarIcon(`<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>`)
 	iconRows     = sidebarIcon(`<path d="M4 6.5h16M4 12h16M4 17.5h16"/>`)
 	iconColumns  = sidebarIcon(`<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9.5 4v16M16.5 4v16"/>`)
 )
@@ -141,6 +140,14 @@ func (a *app) sidebarView(c *ui.Context) {
 			a.sidebarToggle(c, "Hide Sidebar")
 		})
 		sidebar := ui.Sidebar(c, &a.sidebarSelection, func() {
+			ui.Column(c).FillWidth().Padding(6, 0, 12, 0).Children(func() {
+				colors := a.jumpColors()
+				ui.ButtonBase(c).Label("Jump to folder").Tooltip("Jump to folder (⌘K)").FillWidth().Height(32).PaddingX(10).Gap(8).AlignItems(ui.Center).Radius(8).Border(1, colors.border).Background(colors.strip).Children(func() {
+					ui.Icon(c, jumpSearchIcon).Size(14, 14).TextColor(colors.muted).Shrink(0)
+					ui.Text(c, "Jump to…").FontSize(14).TextColor(colors.muted).SingleLine().Grow(1).MinWidth(0)
+					ui.Text(c, "⌘K").FontSize(11).FontWeight(600).Padding(3, 5).Radius(4).Background(colors.hover).TextColor(colors.muted).Shrink(0)
+				}).OnClick(a.openJump)
+			})
 			// The Workspaces header carries a + of its own, so it is a row
 			// rather than a SidebarSection, whose header has no room for
 			// one.

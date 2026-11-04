@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"github.com/egoist/mygo"
 	"os"
 	"path/filepath"
 )
@@ -38,14 +39,16 @@ type session struct {
 	// panes took, as the line above it was left.
 	TerminalPercent float32 `json:"terminalPercent,omitempty"`
 	// SidebarHidden tells the window was left with the sidebar folded away.
-	SidebarHidden bool `json:"sidebarHidden,omitempty"`
-	Light         bool
-	Fonts         fontSettings      `json:"fonts"`
-	Workspaces    []workspaceLayout `json:"workspaces,omitempty"`
-	Workspace     int               `json:"workspace,omitempty"`
-	Recents       []string          `json:"recents,omitempty"`
-	Favorites     []savedLocation   `json:"favorites,omitempty"`
-	FavoritesSet  bool              `json:"favoritesSet,omitempty"`
+	SidebarHidden   bool             `json:"sidebarHidden,omitempty"`
+	ActionBarHidden bool             `json:"actionBarHidden,omitempty"`
+	Appearance      mygo.ThemeSource `json:"appearance,omitempty"`
+	Light           bool
+	Fonts           fontSettings      `json:"fonts"`
+	Workspaces      []workspaceLayout `json:"workspaces,omitempty"`
+	Workspace       int               `json:"workspace,omitempty"`
+	Recents         []string          `json:"recents,omitempty"`
+	Favorites       []savedLocation   `json:"favorites,omitempty"`
+	FavoritesSet    bool              `json:"favoritesSet,omitempty"`
 	// The sidebar sections the user collapsed, open by default.
 	FavoritesCollapsed bool `json:"favoritesCollapsed,omitempty"`
 	RecentsCollapsed   bool `json:"recentsCollapsed,omitempty"`
@@ -83,6 +86,14 @@ func (a *app) restore() {
 		return
 	}
 	a.light = s.Light
+	a.appearance = s.Appearance
+	if a.appearance != mygo.ThemeSystem && a.appearance != mygo.ThemeLight && a.appearance != mygo.ThemeDark {
+		a.appearance = mygo.ThemeDark
+		if s.Light {
+			a.appearance = mygo.ThemeLight
+		}
+	}
+	a.actionBarHidden = s.ActionBarHidden
 	a.fonts = s.Fonts.normalized()
 	if s.Width > 0 {
 		a.lastWidth = s.Width
@@ -132,8 +143,8 @@ func (a *app) snapshotSession() session {
 	}
 	return session{
 		Panes: panes, Active: active, Split: split, Width: a.lastWidth, SidebarWidth: a.sidebarWidth,
-		SidebarHidden: a.sidebarHidden, TerminalPercent: a.terminalPercent,
-		Light: a.light, Fonts: a.fonts,
+		SidebarHidden: a.sidebarHidden, ActionBarHidden: a.actionBarHidden, TerminalPercent: a.terminalPercent,
+		Light: a.light, Appearance: a.appearance, Fonts: a.fonts,
 		Workspaces: workspaces, Workspace: a.workspaceIndex, Recents: a.recents, Favorites: a.favorites,
 		FavoritesSet: true, FavoritesCollapsed: !a.favoritesFold.open, RecentsCollapsed: !a.recentsFold.open,
 		LocationsCollapsed: !a.locationsFold.open,

@@ -346,3 +346,122 @@ func TestTrashMovesCursorToNext(t *testing.T) {
 		t.Fatalf("cursor = %d, want the last of %d", got, len(a.current().entries))
 	}
 }
+
+func TestActionBarMenuVisibilityAndRestore(t *testing.T) {
+	config := t.TempDir()
+	t.Setenv("HOME", config)
+	t.Setenv("XDG_CONFIG_HOME", config)
+	t.Setenv("APPDATA", config)
+	a := fixture(t)
+	saved := make(chan struct{}, 2)
+	a.settingsWriter.save = func(s session) { saveSession(s); saved <- struct{}{} }
+	m := a.applicationMenu()
+	item := m.ItemByID("toggle-actionbar")
+	if item == nil || item.Type != mygo.MenuItemCheckbox || !item.IsChecked() {
+		t.Fatal("missing checked ActionBar menu item")
+	}
+	inView := false
+	for _, parent := range m.Items() {
+		if parent.Label == "View" {
+			for _, child := range parent.Submenu {
+				if child == item {
+					inView = true
+				}
+			}
+		}
+	}
+	if !inView {
+		t.Fatal("ActionBar toggle is not under View")
+	}
+	tt := ui.NewTester(a.view, 1100, 720)
+	if !tt.HasText("F5 Copy") {
+		t.Fatal("ActionBar should be visible by default")
+	}
+	item.Click(item, nil)
+	tt.Frame()
+	if tt.HasText("F5 Copy") || item.IsChecked() {
+		t.Fatal("ActionBar did not hide")
+	}
+	select {
+	case <-saved:
+	case <-time.After(time.Second):
+		t.Fatal("settings not saved")
+	}
+	b := newApp(a.current().path, a.current().path)
+	b.restore()
+	if !b.actionBarHidden || b.actionBarMenu().IsChecked() {
+		t.Fatal("hidden ActionBar did not restore")
+	}
+	item.Click(item, nil)
+	tt.Frame()
+	if !tt.HasText("F5 Copy") || !item.IsChecked() {
+		t.Fatal("ActionBar did not return")
+	}
+	select {
+	case <-saved:
+	case <-time.After(time.Second):
+		t.Fatal("settings not saved")
+	}
+}
+
+func TestSystemAppearanceFollowsAndRestores(t *testing.T) {
+	originalFollow, originalDark := followSystemAppearance, systemAppearanceIsDark
+	defer func() { followSystemAppearance = originalFollow; systemAppearanceIsDark = originalDark }()
+	dark := false
+	follows := 0
+	followSystemAppearance = func() { follows++ }
+	systemAppearanceIsDark = func() bool { return dark }
+	config := t.TempDir()
+	t.Setenv("HOME", config)
+	t.Setenv("XDG_CONFIG_HOME", config)
+	t.Setenv("APPDATA", config)
+	a := fixture(t)
+	saved := make(chan session, 4)
+	a.settingsWriter.save = func(s session) { saved <- s }
+	shell := &fakeTerminal{}
+	a.current().terminal.session = shell
+	m := a.applicationMenu()
+	system := m.ItemByID("appearance-system")
+	if system == nil || system.Type != mygo.MenuItemRadio {
+		t.Fatal("System appearance missing")
+	}
+	system.Click(system, nil)
+	if !a.light || !shell.light || follows != 1 {
+		t.Fatal("System did not resolve light appearance")
+	}
+	var snapshot session
+	select {
+	case snapshot = <-saved:
+	case <-time.After(time.Second):
+		t.Fatal("preference not saved")
+	}
+	if snapshot.Appearance != mygo.ThemeSystem {
+		t.Fatal("saved resolved color instead of preference")
+	}
+	dark = true
+	a.systemAppearanceUpdated()
+	if a.light || shell.light {
+		t.Fatal("System did not follow dark transition")
+	}
+	if !a.applicationMenu().ItemByID("appearance-system").Checked {
+		t.Fatal("System selection lost after color change")
+	}
+	saveSession(snapshot)
+	b := newApp(a.current().path, a.current().path)
+	b.restore()
+	b.applyAppearance()
+	if b.appearance != mygo.ThemeSystem || b.light {
+		t.Fatal("System did not restore using the current OS appearance")
+	}
+	light := m.ItemByID("appearance-light")
+	light.Click(light, nil)
+	a.systemAppearanceUpdated()
+	if !a.light || a.appearance != mygo.ThemeLight {
+		t.Fatal("explicit Light followed OS changes")
+	}
+	select {
+	case <-saved:
+	case <-time.After(time.Second):
+		t.Fatal("Light preference not saved")
+	}
+}

@@ -98,6 +98,9 @@ var setSystemAppearance = func(light bool) {
 	mygo.Theme.SetSource(mygo.ThemeDark)
 }
 
+var followSystemAppearance = func() { mygo.Theme.SetSource(mygo.ThemeSystem) }
+var systemAppearanceIsDark = func() bool { return mygo.Theme.IsDark() }
+
 // colors picks the colors of the appearance the user chose.
 func (a *app) colors() palette {
 	if a.light {
@@ -168,8 +171,7 @@ func (a *app) fileIcon(c *ui.Context, e entry) {
 	a.fileIconAt(c, e, 16, 16)
 }
 
-// fileIconAt draws a file's icon at a size of its own, the icon view's larger
-// than the list rows'.
+// fileIconAt draws an icon at the size needed by a list row or folder picker.
 func (a *app) fileIconAt(c *ui.Context, e entry, width, height float32) {
 	key := "file"
 	if e.dir {
@@ -255,5 +257,12 @@ func (a *app) edit() {
 	paths := a.targets()
 	if len(paths) > 0 {
 		a.launch("open", append([]string{"-a", "TextEdit"}, paths...)...)
+	}
+}
+
+// System notifications also arrive for explicit overrides; only System follows them.
+func (a *app) systemAppearanceUpdated() {
+	if !a.closed && a.appearance == mygo.ThemeSystem {
+		a.updateAppearance(!systemAppearanceIsDark())
 	}
 }

@@ -592,7 +592,7 @@ func TestFavoritesUseTheirOwnIcon(t *testing.T) {
 }
 
 // TestViewModesSwitch checks the buttons at the right end of the breadcrumb row
-// show a pane's folder as a list, as icons and as columns, that the mode a tab
+// show a pane's folder as a list and as columns, that the mode a tab
 // is in has the pressed look, and that the choice is kept.
 func TestViewModesSwitch(t *testing.T) {
 	a := fixture(t)
@@ -605,21 +605,6 @@ func TestViewModesSwitch(t *testing.T) {
 	}
 	if a.panes[0].tabs[0].view != asList {
 		t.Fatalf("a tab starts as %v", a.panes[0].tabs[0].view)
-	}
-	if err := tt.Click("As Icons"); err != nil {
-		t.Fatalf("%v (labels %v)", err, tt.Texts())
-	}
-	tt.Frame()
-	// The other pane keeps its header, whose labels Find returns first: the
-	// first pane's is gone when its label sits in the first pane's half.
-	if a.panes[0].tabs[0].view != asIcons {
-		t.Fatalf("icons mode: view=%v", a.panes[0].tabs[0].view)
-	}
-	if r, ok := tt.Find("Modified"); ok && r.X < 550 {
-		t.Fatalf("the first pane still shows its header at %v", r)
-	}
-	if !tt.HasText("hello.txt") || !tt.HasText("Folder") {
-		t.Fatalf("icons mode lost the entries: %v", tt.Texts())
 	}
 	if err := tt.Click("As Columns"); err != nil {
 		t.Fatalf("%v (labels %v)", err, tt.Texts())
@@ -667,11 +652,6 @@ func TestNoParentRow(t *testing.T) {
 	}
 	if len(a.current().entries) != 2 {
 		t.Fatalf("entries = %v", a.current().entries)
-	}
-	a.setViewMode(0, asIcons)
-	tt.Frame()
-	if tt.HasText("..") {
-		t.Fatal("the icon view shows a parent row")
 	}
 	a.setViewMode(0, asColumns)
 	tt.Frame()
@@ -745,7 +725,7 @@ func TestPinToFavorites(t *testing.T) {
 	a.favorites = nil
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()
-	for _, mode := range []viewMode{asList, asIcons, asColumns} {
+	for _, mode := range []viewMode{asList, asColumns} {
 		a.setViewMode(0, mode)
 		tt.Frame()
 		if err := tt.RightClick("Folder"); err != nil {
@@ -875,7 +855,7 @@ func TestCompressPacksSelection(t *testing.T) {
 	a.favorites = nil
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()
-	for _, mode := range []viewMode{asList, asIcons, asColumns} {
+	for _, mode := range []viewMode{asList, asColumns} {
 		a.setViewMode(0, mode)
 		tt.Frame()
 		if err := tt.RightClick("Folder"); err != nil {
@@ -1014,5 +994,27 @@ func TestEntryDragsBetweenPanes(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(right, "moved.txt")); err != nil {
 		t.Fatalf("moved.txt is not in the pane it joined: %v", err)
+	}
+}
+
+func TestRestoredTabsUseSupportedViewModes(t *testing.T) {
+	for _, saved := range []struct {
+		value uint8
+		want  viewMode
+	}{{0, asList}, {1, asList}, {2, asColumns}, {255, asList}} {
+		a := fixture(t)
+		w := workspaceLayout{}
+		w.Panes[0].Tabs = []savedTab{{Path: a.current().path, View: saved.value}}
+		a.applyWorkspace(w, false)
+		if a.current().view != saved.want {
+			t.Fatalf("saved mode %d restored as %d, want %d", saved.value, a.current().view, saved.want)
+		}
+		tt := ui.NewTester(a.view, 1100, 720)
+		if tt.HasText("As Icons") {
+			t.Fatal("removed view button is visible")
+		}
+		if !tt.HasText("As List") || !tt.HasText("As Columns") {
+			t.Fatal("supported view buttons missing")
+		}
 	}
 }

@@ -17,8 +17,8 @@ func main() {
 	a := newApp(home, home)
 	a.restore()
 	initPreviewApp(a)
-	setSystemAppearance(a.light)
 	mygo.App.WhenReady(func() {
+		a.applyAppearance()
 		w := mygo.NewWindow(mygo.WindowOptions{Title: "Twintrail", Width: 1240, Height: 760, MinWidth: 960, MinHeight: 420, StateKey: "main", TitleBarStyle: mygo.TitleBarHidden, TrafficLightPosition: &mygo.Point{X: 10, Y: 8}, BackgroundColor: cssColor(a.colors().window), Content: ui.View(a.view)})
 		mygo.App.SetMenu(a.applicationMenu())
 		a.update = func(fn func()) {
@@ -26,8 +26,21 @@ func main() {
 				fn()
 			})
 		}
+		stopAppearance := mygo.Theme.OnUpdated(func() {
+			w.Update(func() {
+				a.systemAppearanceUpdated()
+			})
+		})
 		w.OnClose(func(e *mygo.CloseEvent) { a.persistSettings(false) })
-		w.OnClosed(func() { a.closed = true; a.closeTerminals() })
+		w.OnClosed(func() {
+			a.closed = true
+			stopAppearance()
+			a.closeModal()
+			if a.folderIndex != nil {
+				a.folderIndex.stop()
+			}
+			a.closeTerminals()
+		})
 		for i := range a.panes {
 			for _, t := range a.panes[i].tabs {
 				a.load(t, t.path)

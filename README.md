@@ -10,7 +10,7 @@ A macOS native dual-pane file manager built on Go and myGO v0.7.3. Fully native 
 
 ## Implemented
 
-- Directories first, name ascending or descending, hidden-file toggle, name substring filter. Each tab shows its folder as a list, as icons or as columns, the three buttons at the right end of the breadcrumb row switching, and the mode is saved with the tab.
+- Directories first, name ascending or descending, hidden-file toggle, name substring filter. Each tab shows its folder as a list or as columns, the two buttons at the right end of the breadcrumb row switching, and the mode is saved with the tab.
 - Each pane holds tabs: ⌘T opens one at the current folder, ⌘W closes it, and every tab also has a visible × button and a Close Tab context menu. A pane always keeps at least one tab; Shift+⌘W closes the window.
 - Copy, move, rename, create nested directories, move to the macOS Trash (⌘⌫, at once, or F8, after a confirmation), with confirmation dialogs and error display. Entries drag between the panes, which moves them into the other pane's folder.
 - File operations and directory reads run in the background; stale directory read results are discarded.

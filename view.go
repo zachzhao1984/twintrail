@@ -44,18 +44,20 @@ func (a *app) view(c *ui.Context) {
 				if a.status != "Ready" && a.status != "" {
 					ui.Text(c, a.status).Height(20).PaddingX(6).TextColor(theme.TextMuted)
 				}
-				a.fonts.ActionBar.apply(ui.Row(c).Height(fontHeight(a.fonts.ActionBar, 20) + 6).Padding(3).Gap(3).Background(theme.Background)).Children(func() {
-					for _, b := range []struct {
-						name string
-						fn   func()
-					}{
-						{"⌘↵ Open With", a.openWith}, {"F4 Edit", a.edit}, {"F5 Copy", func() { a.ask("Copy") }},
-						{"F6 Move", func() { a.ask("Move") }}, {"⇧F6 Rename", func() { a.ask("Rename") }},
-						{"F7 New Folder", func() { a.ask("New folder") }}, {"⇧F8 Delete", func() { a.ask("Delete") }},
-					} {
-						ui.ButtonBase(c).Grow(1).Height(fontHeight(a.fonts.ActionBar, 20)).Background(theme.Surface).Radius(2).PaddingX(5).AlignItems(ui.Center).Justify(ui.Start).Children(func() { ui.Text(c, b.name).TextColor(theme.TextMuted) }).OnClick(b.fn).Disabled(a.busy || a.modal != nil)
-					}
-				})
+				if !a.actionBarHidden {
+					a.fonts.ActionBar.apply(ui.Row(c).Height(fontHeight(a.fonts.ActionBar, 20) + 6).Padding(3).Gap(3).Background(theme.Background)).Children(func() {
+						for _, b := range []struct {
+							name string
+							fn   func()
+						}{
+							{"⌘↵ Open With", a.openWith}, {"F4 Edit", a.edit}, {"F5 Copy", func() { a.ask("Copy") }},
+							{"F6 Move", func() { a.ask("Move") }}, {"⇧F6 Rename", func() { a.ask("Rename") }},
+							{"F7 New Folder", func() { a.ask("New folder") }}, {"⇧F8 Delete", func() { a.ask("Delete") }},
+						} {
+							ui.ButtonBase(c).Grow(1).Height(fontHeight(a.fonts.ActionBar, 20)).Background(theme.Surface).Radius(2).PaddingX(5).AlignItems(ui.Center).Justify(ui.Start).Children(func() { ui.Text(c, b.name).TextColor(theme.TextMuted) }).OnClick(b.fn).Disabled(a.busy || a.modal != nil)
+						}
+					})
+				}
 			})
 		}
 		panes := func() {
@@ -78,12 +80,25 @@ func (a *app) view(c *ui.Context) {
 			a.dialogView(c)
 		}
 	})
-	c.OnShortcut(ui.Cmd, ui.KeyComma, a.openPreferences)
+	c.OnShortcut(ui.Cmd, ui.KeyK, func() {
+		if a.modal == nil {
+			a.openJump()
+		}
+	})
+	c.OnShortcut(ui.Cmd, ui.KeyComma, func() {
+		if a.modal == nil {
+			a.openPreferences()
+		}
+	})
 	c.OnShortcut(ui.Cmd, ui.KeyBackquote, a.toggleTerminal)
-	c.OnShortcut(ui.Cmd|ui.Shift, ui.KeyP, func() { a.ask("Actions") })
+	c.OnShortcut(ui.Cmd|ui.Shift, ui.KeyP, func() {
+		if a.modal == nil {
+			a.ask("Actions")
+		}
+	})
 	if a.modal != nil || !a.current().terminal.handle.FocusWithin(c) {
 		c.OnShortcut(0, ui.KeyEscape, func() {
-			a.modal = nil
+			a.closeModal()
 			a.current().filter = ""
 			a.current().searchOpen = false
 			a.current().marked = map[string]bool{}
@@ -205,8 +220,6 @@ func (a *app) paneView(c *ui.Context, index int) {
 		switch t.view {
 		case asList:
 			a.filesList(c, index, t, es, active)
-		case asIcons:
-			a.filesIcons(c, index, t, es, active)
 		case asColumns:
 			a.filesColumns(c, index, t, es, active)
 		}
@@ -322,7 +335,7 @@ func (a *app) markMove(t *tab, es []entry, delta int) {
 func (a *app) dialogView(c *ui.Context) {
 	d := a.modal
 	if !d.open {
-		a.modal = nil
+		a.closeModal()
 		a.focus = a.active + 1
 		return
 	}
@@ -330,11 +343,20 @@ func (a *app) dialogView(c *ui.Context) {
 	ui.DialogBase(c, &d.open, func(backdrop, panel ui.Element) {
 		backdrop.Background(a.colors().scrim)
 		panelWidth := float32(440)
+		if d.kind == "Jump" {
+			panelWidth = 680
+		}
 		if d.kind == "Preference" {
 			panelWidth = 660
 		}
 		if d.kind == "Open With" {
 			panelWidth = 360
+		}
+		if d.kind == "Jump" {
+			w, h := c.Size()
+			panel.Width(min(panelWidth, w-48)).Height(min(float32(490), h-48)).Background(a.jumpColors().window).Border(1, a.jumpColors().border).Radius(14).Padding(0)
+			a.jumpView(c, d)
+			return
 		}
 		panel.Width(panelWidth).Background(c.Theme().Background).Border(1, c.Theme().Border).Radius(7).Padding(16)
 		ui.Column(c).Gap(10).Children(func() {
@@ -406,16 +428,14 @@ func (a *app) compress(sources []string) {
 	})
 }
 
-// viewSwitch draws the three buttons at the right end of the breadcrumb row,
-// which show a pane's folder as a list, as icons or as columns, the way Finder
-// does; the mode the pane is in has the accent's look.
+// viewSwitch selects list or columns at the right end of the breadcrumb row.
 func (a *app) viewSwitch(c *ui.Context, index int) {
 	theme := c.Theme()
 	modes := []struct {
 		mode  viewMode
 		icon  *ui.SVG
 		label string
-	}{{asList, iconRows, "As List"}, {asIcons, iconIcons, "As Icons"}, {asColumns, iconColumns, "As Columns"}}
+	}{{asList, iconRows, "As List"}, {asColumns, iconColumns, "As Columns"}}
 	for _, m := range modes {
 		m := m
 		chosen := a.panes[index].tabs[a.panes[index].current].view == m.mode
@@ -575,65 +595,6 @@ func (a *app) filesList(c *ui.Context, index int, t *tab, es []entry, active boo
 			}
 		}
 	}).OnShortcut(ui.Shift, ui.KeyDown, func() { a.markMove(t, es, 1) }).OnShortcut(ui.Shift, ui.KeyUp, func() { a.markMove(t, es, -1) })
-}
-
-// filesIcons draws a pane's folder as icons in a grid, as Finder's icon view:
-// the entry the cursor was on stays chosen, and the shortcuts of the list work
-// here too.
-func (a *app) filesIcons(c *ui.Context, index int, t *tab, es []entry, active bool) {
-	colors := a.colors()
-	t.grid.Selected = &t.cursor
-	t.grid.Label = func(i int) string { return es[i].name }
-	ui.GridView(c, &t.grid, len(es), 128, 116, func(i int) {
-		e := es[i]
-		color := colors.text
-		if t.marked[e.name] {
-			color = colors.mark
-		}
-		cell := a.fonts.Files.apply(ui.Column(c).Fill().Padding(10, 6).Gap(8).AlignItems(ui.Center))
-		if e.name != ".." {
-			// The cell drags to the other pane, which takes the press the
-			// grid's cell would: it chooses its cell itself, and opens the
-			// entry a double click on it presses.
-			path := filepath.Join(t.path, e.name)
-			cell.Drag(entryDrag{from: index, paths: a.dragPaths(index, e.name)})
-			switch {
-			case cell.DoubleClicked():
-				t.doublePress = path
-			case cell.Dragging():
-				t.doublePress = ""
-			}
-			cell.OnClick(func() {
-				a.active, a.focus = index, index+1
-				t.cursor = i
-				if t.doublePress == path {
-					t.doublePress = ""
-					a.open()
-				}
-			})
-		}
-		cell.Children(func() {
-			ui.Box(c).Grow(1).AlignItems(ui.Center).Children(func() { a.fileIconAt(c, e, 48, 48) })
-			ui.Text(c, e.name).TextColor(color).MaxLines(2).TextAlign(ui.Center).SingleLine()
-		}).ContextMenu(func(m *ui.Menu) {
-			a.active, a.focus = index, index+1
-			a.fileMenuAt(c, m, index, filepath.Join(t.path, e.name))
-		})
-	}).Grow(1).FocusRing(false).FocusBind(&a.focus, index+1).ItemKey(func(i int) any { return es[i].name }).OnChange(func() { a.active = index }).OnSubmit(func() { a.active = index; a.open() }).OnShortcut(0, ui.KeyBackspace, func() { a.active = index; a.load(t, filepath.Dir(t.path)) }).OnShortcut(0, ui.KeySpace, func() {
-		a.active = index
-		a.previewToggle(index)
-	}).OnShortcut(0, ui.KeyInsert, func() {
-		if t.cursor >= 0 && t.cursor < len(es) && es[t.cursor].name != ".." {
-			e := es[t.cursor]
-			t.marked[e.name] = !t.marked[e.name]
-		}
-	}).OnShortcut(ui.Cmd, ui.KeyA, func() {
-		for _, e := range t.entries {
-			if e.name != ".." {
-				t.marked[e.name] = true
-			}
-		}
-	})
 }
 
 // filesColumns draws a pane's folder as columns, as Finder's column view: one

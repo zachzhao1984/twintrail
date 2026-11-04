@@ -120,9 +120,9 @@ func (a *app) applyWorkspace(w workspaceLayout, load bool) {
 			if st.Path == "" || !filepath.IsAbs(st.Path) {
 				continue
 			}
-			view := viewMode(0)
-			if st.View <= uint8(asColumns) {
-				view = viewMode(st.View)
+			view := asList
+			if st.View == uint8(asColumns) {
+				view = asColumns
 			}
 			t := &tab{path: st.Path, hidden: st.Hidden, marked: map[string]bool{}, view: view}
 			t.terminal.visible = st.Terminal

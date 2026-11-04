@@ -23,14 +23,13 @@ type entry struct {
 	modified time.Time
 }
 
-// viewMode is how a pane shows the folder it holds, as Finder's: a list of
-// rows, icons in a grid, or columns of the folders along the path.
+// viewMode selects a list or columns of the folders along the path.
 type viewMode uint8
 
 const (
-	asList viewMode = iota
-	asIcons
-	asColumns
+	asList viewMode = 0
+	// Keep the persisted value so existing column tabs restore correctly.
+	asColumns viewMode = 2
 )
 
 type tab struct {
@@ -42,7 +41,6 @@ type tab struct {
 	hidden     bool
 	filter     string
 	list       ui.ListState
-	grid       ui.GridState
 	columns    [8]column
 	generation int
 	loading    bool
@@ -64,6 +62,12 @@ type pane struct {
 	current int
 }
 type dialog struct {
+	jumpList     ui.ListState
+	jumpQuery    string
+	jumpResults  []string
+	jumpCancel   func()
+	jumpTab      *tab
+	jumpPane     int
 	kind, value  string
 	open         bool
 	sources      []string
@@ -78,6 +82,7 @@ type dialog struct {
 	trashItem func(string) error
 }
 type app struct {
+	folderIndex          *folderIndex
 	discoverApplications func([]string) ([]openWithApplication, error)
 	// trashItem moves one path into the system's Trash, whose Put Back the
 	// rename into ~/.Trash this replaces cannot serve. The default asks the
@@ -97,6 +102,7 @@ type app struct {
 	split               float32
 	sidebarWidth        float32
 	sidebarHidden       bool
+	actionBarHidden     bool
 	sidebarFolding      bool
 	sidebarShown        float32
 	terminalPercent     float32
@@ -105,6 +111,7 @@ type app struct {
 	status              string
 	busy                bool
 	light               bool
+	appearance          mygo.ThemeSource
 	update              func(func())
 	closed              bool
 	newTerminal         func(string) (terminalSession, error)
@@ -127,7 +134,7 @@ type app struct {
 }
 
 func newApp(left, right string) *app {
-	a := &app{fonts: defaultFonts(), split: 550, sidebarWidth: defaultSidebarWidth, sidebarShown: defaultSidebarWidth, terminalPercent: defaultTerminalPercent, lastWidth: 1100, focus: 1, status: "Ready"}
+	a := &app{appearance: mygo.ThemeDark, fonts: defaultFonts(), split: 550, sidebarWidth: defaultSidebarWidth, sidebarShown: defaultSidebarWidth, terminalPercent: defaultTerminalPercent, lastWidth: 1100, focus: 1, status: "Ready"}
 	for i, p := range []string{left, right} {
 		t := &tab{path: p, marked: map[string]bool{}}
 		a.panes[i] = pane{tabs: []*tab{t}}

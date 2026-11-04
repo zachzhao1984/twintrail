@@ -211,23 +211,34 @@ func (a *app) applicationMenu() *mygo.Menu {
 			w.Invalidate()
 		}
 	}}
-	return mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu, Submenu: []*mygo.MenuItem{{Role: mygo.RoleAbout}, updateMenuItem(), mygo.Separator(), a.preferenceMenu(), mygo.Separator(), {Role: mygo.RoleServices}, mygo.Separator(), {Role: mygo.RoleHide}, {Role: mygo.RoleHideOthers}, {Role: mygo.RoleUnhide}, mygo.Separator(), {Role: mygo.RoleQuit}}}, a.applicationFileMenu(), {Role: mygo.RoleEditMenu}, {Label: "View", Submenu: []*mygo.MenuItem{a.appearanceMenu(), mygo.Separator(), a.terminalMenu, mygo.Separator(), {Role: mygo.RoleToggleFullScreen}}}, {Role: mygo.RoleWindowMenu}})
+	return mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu, Submenu: []*mygo.MenuItem{{Role: mygo.RoleAbout}, updateMenuItem(), mygo.Separator(), a.preferenceMenu(), mygo.Separator(), {Role: mygo.RoleServices}, mygo.Separator(), {Role: mygo.RoleHide}, {Role: mygo.RoleHideOthers}, {Role: mygo.RoleUnhide}, mygo.Separator(), {Role: mygo.RoleQuit}}}, a.applicationFileMenu(), {Role: mygo.RoleEditMenu}, {Label: "View", Submenu: []*mygo.MenuItem{a.appearanceMenu(), mygo.Separator(), a.actionBarMenu(), a.terminalMenu, mygo.Separator(), {Role: mygo.RoleToggleFullScreen}}}, {Role: mygo.RoleWindowMenu}})
 }
 
-// appearanceMenu builds the View menu's choice between the light and the dark
-// look, the one the window is drawn in checked.
+func (a *app) actionBarMenu() *mygo.MenuItem {
+	return &mygo.MenuItem{ID: "toggle-actionbar", Label: "Toggle ActionBar", Type: mygo.MenuItemCheckbox, Checked: !a.actionBarHidden, Click: func(item *mygo.MenuItem, w *mygo.Window) {
+		a.actionBarHidden = !a.actionBarHidden
+		item.SetChecked(!a.actionBarHidden)
+		a.persistSettings(true)
+		if w != nil {
+			w.Invalidate()
+		}
+	}}
+}
+
+// appearanceMenu checks the selected preference, independently of its resolved color.
 func (a *app) appearanceMenu() *mygo.MenuItem {
-	choose := func(light bool) func(*mygo.MenuItem, *mygo.Window) {
+	choose := func(source mygo.ThemeSource) func(*mygo.MenuItem, *mygo.Window) {
 		return func(item *mygo.MenuItem, w *mygo.Window) {
-			a.setLight(light)
+			a.setAppearance(source)
 			if w != nil {
 				w.Invalidate()
 			}
 		}
 	}
 	return &mygo.MenuItem{Label: "Appearance", Submenu: []*mygo.MenuItem{
-		{ID: "appearance-light", Label: "Light", Type: mygo.MenuItemRadio, Checked: a.light, Click: choose(true)},
-		{ID: "appearance-dark", Label: "Dark", Type: mygo.MenuItemRadio, Checked: !a.light, Click: choose(false)},
+		{ID: "appearance-system", Label: "System", Type: mygo.MenuItemRadio, Checked: a.appearance == mygo.ThemeSystem, Click: choose(mygo.ThemeSystem)},
+		{ID: "appearance-light", Label: "Light", Type: mygo.MenuItemRadio, Checked: a.appearance == mygo.ThemeLight, Click: choose(mygo.ThemeLight)},
+		{ID: "appearance-dark", Label: "Dark", Type: mygo.MenuItemRadio, Checked: a.appearance == mygo.ThemeDark, Click: choose(mygo.ThemeDark)},
 	}}
 }
 
@@ -243,15 +254,33 @@ func (a *app) applyTerminalAppearance() {
 	}
 }
 
-// setLight draws the window in the light or the dark look, and keeps it so.
-func (a *app) setLight(light bool) {
+func (a *app) setAppearance(source mygo.ThemeSource) {
+	if a.appearance == source {
+		return
+	}
+	a.appearance = source
+	a.applyAppearance()
+	a.persistSettings(true)
+}
+
+// applyAppearance resolves System only after the native app is ready.
+func (a *app) applyAppearance() {
+	if a.appearance == mygo.ThemeSystem {
+		followSystemAppearance()
+		a.updateAppearance(!systemAppearanceIsDark())
+	} else {
+		light := a.appearance == mygo.ThemeLight
+		setSystemAppearance(light)
+		a.updateAppearance(light)
+	}
+}
+
+func (a *app) updateAppearance(light bool) {
 	if a.light == light {
 		return
 	}
 	a.light = light
-	setSystemAppearance(light)
 	a.applyTerminalAppearance()
-	a.persistSettings(true)
 }
 
 // fileMenu replaces RoleFileMenu, whose Close Window item owns Cmd+W on
