@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.2.0
+
+- Space previews the selection with the system's Quick Look panel, as Finder's
+  does: a press opens the panel, another closes it, and the panel reads the
+  pane's folder through its data source, whose arrows walk the entries. It
+  replaces the qlmanage window the press used to spawn.
+- ⌘⌫ moves the selection to the Trash without a dialog, as Finder's does: the
+  panes reload with what the Trash left beside, the cursor taking the entry
+  that took the trashed one's place, and the status bar naming what went
+  wrong. F8 keeps its dialog. Every transfer's refresh keeps the cursor where
+  it looked, as the view reloads. The entries go through the system's trash,
+  which records where they came from: the Finder's Put Back works on what this
+  app trashes, where the rename into ~/.Trash it replaced left nothing to
+  read.
+- The panes' entries drag between them: a row of the list or a cell of the
+  icon view drags its selection — the marked entries when it is one of them —
+  and the other pane's folder takes them, moving as a drop of Finder's does.
+  The pane they left reloads with what moved away.
+- The entries' menus gain Open With… and Compress, which packs the entries
+  into one zip beside the first of them, named for it, whose folders walk
+  their entries; an existing zip is left alone. Every view's entries carry
+  both, and a folder already pinned offers no second Pin to Favorites.
+- A tab drags between the panes, and the strips show for one tab too, which a
+  tab dragged out of a one-tab pane has somewhere to land.
+- Updated myGO to v0.7.4, whose terminal plugin can download its
+  libghostty-vt, which the release of 1.1.0 shipped an older copy of.
+
 ## 1.1.0
 
 - The panes' entries drag between them: a row of the list or a cell of the

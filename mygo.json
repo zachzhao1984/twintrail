@@ -1,7 +1,7 @@
 {
   "name": "Twintrail",
   "identifier": "com.example.twintrail",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "out": "build",
   "updates": {
     "publicKey": "gB7U6lBrptFONtTdxfkJhiqgv918vk2wi1RnczyDpXI=",
