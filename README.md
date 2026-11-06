@@ -1,5 +1,7 @@
 # Twintrail
 
+[Website](https://zachzhao1984.github.io/twintrail/) · [Downloads](https://github.com/zachzhao1984/twintrail/releases/latest)
+
 <p align="center">
   <img src="resources/icon.png" width="256" alt="Twintrail">
 </p>

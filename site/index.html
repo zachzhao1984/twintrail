@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Twintrail：为 macOS 而生的原生双栏文件管理器。"
+    />
+    <title>Twintrail — 操作流畅，思路不断。</title>
+    <meta name="theme-color" content="#14171a" />
+    <link rel="canonical" href="https://zachzhao1984.github.io/twintrail/" />
+    <link rel="icon" type="image/png" href="assets/icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Twintrail" />
+    <meta property="og:title" content="Twintrail — Stay in your flow." />
+    <meta
+      property="og:description"
+      content="A native dual-pane file manager for macOS. Two places. One clear view."
+    />
+    <meta
+      property="og:url"
+      content="https://zachzhao1984.github.io/twintrail/"
+    />
+    <meta
+      property="og:image"
+      content="https://zachzhao1984.github.io/twintrail/assets/social.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#top" data-i18n="skip">跳到主要内容</a>
+    <div class="wrap">
+      <header class="nav">
+        <a class="wordmark" href="#top" aria-label="Twintrail 首页"
+          ><img src="assets/icon.webp" alt="Twintrail" />Twintrail</a
+        >
+        <nav class="navlinks" aria-label="Main navigation">
+          <a class="section-nav" href="#workflow" data-i18n="navWorkflow"
+            >操作方式</a
+          ><a
+            class="section-nav"
+            href="https://github.com/zachzhao1984/twintrail"
+            data-i18n="navSource"
+            >源代码</a
+          >
+          <div class="lang" aria-label="Language">
+            <button type="button" data-language="zh-CN" aria-pressed="true">
+              中文</button
+            ><button type="button" data-language="en" aria-pressed="false">
+              EN
+            </button>
+          </div>
+          <a class="download-link" href="#download" data-i18n="navDownload"
+            >下载 Twintrail</a
+          >
+        </nav>
+      </header>
+      <main id="top">
+        <section class="hero">
+          <div class="hero-copy page-enter">
+            <p class="platform" data-i18n="platform">
+              为 macOS 而生的原生双栏文件管理器
+            </p>
+            <h1 data-i18n-html="heroTitle">操作流畅，<br />思路不断。</h1>
+            <p class="lead" data-i18n="heroLead">
+              项目在左，交付在右。熟悉的快捷键、独立的标签页，让每一步操作都顺着你的思路。
+            </p>
+            <a
+              class="primary"
+              href="https://github.com/zachzhao1984/twintrail/releases/download/v1.2.0/twintrail-1.2.0.dmg"
+              ><svg
+                class="download-icon"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <path d="M10 2v10m-4-4 4 4 4-4M3 12v5h14v-5" /></svg
+              ><span data-i18n="download">下载 macOS 版</span></a
+            >
+            <p class="release">
+              <span data-i18n="release">公开版本 v1.2.0</span> &nbsp;
+              <a
+                href="https://github.com/zachzhao1984/twintrail/releases/tag/v1.2.0"
+                data-i18n="releaseNotes"
+                >发行说明</a
+              >
+            </p>
+            <div class="hero-keys" aria-hidden="true">
+              <kbd>⌘ T</kbd><kbd>space</kbd><kbd>F5</kbd
+              ><span data-i18n="keysCaption">从熟悉的按键开始。</span>
+            </div>
+          </div>
+          <figure class="hero-art" style="margin: 0">
+            <div class="window">
+              <div class="windowbar" aria-hidden="true">
+                <span class="traffic"><i></i><i></i><i></i></span>
+                <p>Studio workspace</p>
+                <span class="spacer"></span>
+              </div>
+              <img
+                src="assets/app-dark.webp"
+                width="1240"
+                height="760"
+                decoding="async"
+                fetchpriority="high"
+                alt="Twintrail 深色双栏界面，左侧项目文件夹与右侧交付目录同时显示"
+                data-alt="heroImage"
+              />
+            </div>
+            <figcaption class="preview-caption">
+              <span data-i18n="preview">开发预览，使用示例工作区</span
+              ><span>Projects / Deliverables</span>
+            </figcaption>
+          </figure>
+        </section>
+        <div class="promise">
+          <p>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="M12 5v14" /></svg
+            ><span data-i18n="promisePanes">两个位置，同一个视野。</span>
+          </p>
+          <p>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="M6 9h12M6 12h12M9 15h6" /></svg
+            ><span data-i18n="promiseKeys">为键盘操作设计。</span>
+          </p>
+          <p>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 4h14v16H5zM9 8l4 4-4 4m6 0h2" /></svg
+            ><span data-i18n="promiseNative">原生界面，日常工具。</span>
+          </p>
+        </div>
+        <section class="section" id="workflow">
+          <div class="section-heading">
+            <h2 data-i18n-html="workflowTitle">
+              你的双手，<br />已经知道怎么做。
+            </h2>
+            <p data-i18n="workflowLead">
+              预览、切换、打开终端。常用动作就在指尖，不必为了下一步操作打断眼前的工作。
+            </p>
+          </div>
+          <div
+            class="walkthrough"
+            tabindex="0"
+            aria-label="Interactive shortcut illustration"
+            data-aria="demo"
+          >
+            <div class="command-list">
+              <button
+                class="command"
+                data-command="preview"
+                aria-pressed="true"
+              >
+                <span
+                  ><span class="command-name" data-i18n="commandPreview"
+                    >即刻预览</span
+                  ><span class="command-sub" data-i18n="subPreview"
+                    >用 Quick Look 看清内容</span
+                  ></span
+                ><kbd>space</kbd></button
+              ><button class="command" data-command="tabs" aria-pressed="false">
+                <span
+                  ><span class="command-name" data-i18n="commandTabs"
+                    >保留上下文</span
+                  ><span class="command-sub" data-i18n="subTabs"
+                    >在当前目录打开新标签页</span
+                  ></span
+                ><kbd>⌘ T</kbd></button
+              ><button
+                class="command"
+                data-command="terminal"
+                aria-pressed="false"
+              >
+                <span
+                  ><span class="command-name" data-i18n="commandTerminal"
+                    >继续用命令行</span
+                  ><span class="command-sub" data-i18n="subTerminal"
+                    >终端跟随当前文件夹</span
+                  ></span
+                ><kbd>⌘ &#96;</kbd>
+              </button>
+            </div>
+            <div class="demo">
+              <span class="demo-label" data-i18n="illustration"
+                >快捷键交互示意</span
+              >
+              <div class="demo-state" aria-live="polite">
+                <div id="demo-art" class="file-glyph" aria-hidden="true">
+                  Aa
+                </div>
+                <h3 id="demo-title">先看清，再继续。</h3>
+                <p id="demo-description">
+                  选中文件，按下空格键。Quick Look
+                  原生预览面板会在需要的时候出现。
+                </p>
+                <div class="demo-hint" id="demo-hint">Brief.pdf</div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="native-section" id="workspace">
+          <div>
+            <h2 data-i18n-html="nativeTitle">
+              工作有两面，<br />工具不必分心。
+            </h2>
+            <p class="description" data-i18n="nativeLead">
+              用工作区保存两侧的标签页与目录布局。回到项目时，让熟悉的位置一起回来。
+            </p>
+            <p class="description" data-i18n="nativeBody">
+              浅色、深色，选择适合你的工作环境。标签页保留各自的终端，让文件与命令行始终在手边。
+            </p>
+            <a
+              class="detail-link"
+              href="https://github.com/zachzhao1984/twintrail#sidebar-and-workspaces"
+              data-i18n="details"
+              >了解工作区与标签页</a
+            >
+          </div>
+          <div class="appearance">
+            <img
+              id="appearance-image"
+              src="assets/app-dark.webp"
+              width="1240"
+              height="760"
+              loading="lazy"
+              decoding="async"
+              alt="Twintrail 开发预览"
+              data-alt="appearanceImage"
+            />
+            <div class="appearance-controls">
+              <p data-i18n="preview">开发预览，使用示例工作区</p>
+              <div
+                class="toggles"
+                role="group"
+                aria-label="Appearance preview"
+                data-aria="appearance"
+              >
+                <button
+                  data-appearance="dark"
+                  class="active"
+                  aria-pressed="true"
+                  data-i18n="dark"
+                >
+                  深色</button
+                ><button
+                  data-appearance="light"
+                  aria-pressed="false"
+                  data-i18n="light"
+                >
+                  浅色
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="closing" id="download">
+          <div class="closing-title">
+            <img src="assets/icon.webp" alt="Twintrail app icon" />
+            <div>
+              <h2 data-i18n="closingTitle">把工作留在顺手的位置。</h2>
+              <p data-i18n="closingLead">为你的下一个项目，留出清晰的双栏。</p>
+            </div>
+          </div>
+          <div class="closing-action">
+            <a
+              class="primary"
+              href="https://github.com/zachzhao1984/twintrail/releases/download/v1.2.0/twintrail-1.2.0.dmg"
+              data-i18n="download"
+              >下载 macOS 版</a
+            >
+            <p class="release" data-i18n="release">公开版本 v1.2.0</p>
+          </div>
+        </section>
+      </main>
+      <footer>
+        <span>Twintrail</span>
+        <div>
+          <a
+            href="https://github.com/zachzhao1984/twintrail"
+            data-i18n="navSource"
+            >源代码</a
+          ><a
+            href="https://github.com/zachzhao1984/twintrail/releases"
+            data-i18n="allReleases"
+            >全部平台与版本</a
+          ><a href="#top" data-i18n="backTop">回到顶部</a>
+        </div>
+      </footer>
+    </div>
+    <script src="script.js" defer></script>
+  </body>
+</html>

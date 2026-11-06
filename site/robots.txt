@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://zachzhao1984.github.io/twintrail/sitemap.xml
