@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.3.0
+
+- ⌘K, and the Jump to… box above the sidebar's workspaces, search every folder
+  on the machine for the active pane's tab from one shared index. Typing never
+  walks the disk: the first use enumerates in the background from the active
+  folder and its parent, the recent folders, the home folder and the filesystem
+  roots, and keeps what it found in a private, atomically replaced cache of
+  directory paths, so a later launch searches without walking the disk again.
+  A query matches the whole path character by character, ignoring case, and
+  ranks an exact folder name above a name the path begins with, that above a
+  contained name, that above a loose character match, and plain paths last. The
+  hundred best results fill the picker, and the index keeps growing behind them
+  until the footer stops asking; ⌘R scans again. `.git` and everything under it
+  are left out, a symlinked folder is searched but not followed, and opening a
+  result checks that the folder is still there. Windows and Linux are indexed
+  too, from every drive letter, without the pseudo-filesystems they mount.
+- View → Appearance gains System, which follows the system's light and dark as
+  it changes, beside Light and Dark, which pin one look. The choice is saved
+  with the window's state; a state file written before System existed still
+  opens in the look it pinned.
+- View → Toggle ActionBar hides the buttons along the window's foot, and the
+  window keeps that as it keeps the sidebar's width and its fold.
+- The panes show their folders as a list or as columns; the icon view is gone,
+  and a tab saved in it opens as a list.
+- ⌘, opens Settings, a navigator over the nine fonts the window draws with,
+  named for the parts they set: File List, Column Headers, Path Bar, Pane Tabs,
+  Status Bar, Workspaces, Action Bar, Terminal, Panel Text. One region is
+  edited at a time under a preview of the parts that region draws — a list of
+  rows, a line of headings, a path, tabs, the counts, the buttons along the
+  foot, a terminal session — so the size being typed reads where it will land.
+  The previews draw text and icons only, taking no keyboard from the editor and
+  starting no terminal, and the navigator and controls keep the system font
+  where the previews take the setting under the cursor. Tab walks the navigator
+  in the order it is drawn and Enter selects; the content side scrolls on its
+  own, so Reset All Fonts and Done stay put at the smallest window with the
+  largest settings font. Every region keeps its own font and size, every change
+  still saves on its own, and Escape still closes.
+- The settings text is English, as the rest of the window's is.
+
 ## 1.2.0
 
 - Space previews the selection with the system's Quick Look panel, as Finder's

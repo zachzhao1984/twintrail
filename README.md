@@ -23,15 +23,25 @@ A macOS native dual-pane file manager built on Go and myGO v0.7.3. Fully native 
 
 The app is drawn in a light and a dark appearance, both built on one blue
 accent: graphite panes in the dark look, white ones in the light, with the
-sidebar, bands, rows and the terminal following. **View → Appearance** (Light
-or Dark) switches them; the choice is saved with the window state. The terminal
-at the bottom of a pane takes the same palette, its blue and yellow being the
-app's accent and mark, and the line above it drags to resize it.
+sidebar, bands, rows and the terminal following. **View → Appearance** offers
+**System**, which follows the system's own light and dark as it changes, and
+**Light** and **Dark**, which pin one look; the choice is saved with the window
+state, where a file written before System existed still reads as the look it
+pinned. **View → Toggle ActionBar** hides the buttons along the window's foot,
+and that is remembered too. The terminal at the bottom of a pane takes the same
+palette, its blue and yellow being the app's accent and mark, and the line
+above it drags to resize it.
 
 ## Sidebar and workspaces
 
 A Finder-style sidebar sits to the left of the panes, in the manner of Tilde:
 
+- **Jump to…**, with ⌘K, searches every folder on the machine for the active
+  pane's tab: typing matches the whole path, ignoring case, and opens the
+  chosen folder where the pane stands. Typing never walks the disk — the first
+  use enumerates in the background, and later uses read memory and a private
+  cache of directory paths. ⌘R inside the picker scans again, and the footer
+  says when the index is still growing. `docs/folder-search.md` has the rest.
 - **Workspaces** lists the saved layouts. The **+** at the right end of its
   header captures both panes as they are now: the tabs in each pane, the
   current tab, the active pane and the split position. Switching workspaces
@@ -52,11 +62,11 @@ Choosing a favorite, recent or location opens it in the active pane's current
 tab. Right-click a favorite or recent to remove it from that list. Workspaces,
 favorites and recents are saved in the window state file.
 
-## Font preferences
+## Settings
 
-The app menu **Preference…** (⌘,) offers nine separate font settings: `actionBar`, `breadcrumbs`, `virtualTabs`, `files`, `statusBar`, `tableHeader`, `tabs`, `preferences`, `terminal`. Font names can be typed in directly, size range 8-48 pt. `Default` uses the system font (the Terminal uses the system monospace font), `Default Bold` and `Default Light` use the system bold and light fonts.
+The app menu **Settings…** (⌘,) opens a navigator over the nine fonts the window draws with: **File List**, **Column Headers**, **Path Bar**, **Pane Tabs**, **Status Bar**, **Workspaces**, **Action Bar**, **Terminal** and **Panel Text**. One region is edited at a time, under a preview of the parts that region sets — a list of rows, a line of headings, a path, tabs, the counts, the buttons along the foot, a terminal session — so a size being typed reads where it will land. The previews draw text and icons only: they take no keyboard from the editor and start nothing. Font names can be typed in directly, size range 8-48 pt. `Default` uses the system font (the Terminal uses the system monospace font), `Default Bold` and `Default Light` use the system bold and light fonts.
 
-The current tab title uses `virtualTabs`, the other tab titles use `tabs`. Changes take effect immediately and the related row heights follow the size; the preferences window's own font can be changed too. The user's given default font setup can be restored in one click. Settings save automatically to the `fonts` field of the window state file, with no restart and no "Apply" click.
+The sidebar's workspace names use Workspaces; the folder tabs at the top of each pane use Pane Tabs. Changes take effect immediately and the related row heights follow the size; the panel's own text can be changed too, while its navigator and controls keep the system font. Escape and Done close it, and Done returns the keyboard to the active pane. The user's given default font setup can be restored in one click. Settings save automatically to the `fonts` field of the window state file, with no restart and no "Apply" click.
 
 ## Open With
 
