@@ -42,7 +42,7 @@ func TestPreferencesLive(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("font change not persisted")
 	}
-	if err := tt.Click("字体区域：路径导航"); err != nil {
+	if err := tt.Click("Font area: Path Bar"); err != nil {
 		t.Fatal(err)
 	}
 	if err := tt.Click("breadcrumbs font"); err != nil {
@@ -62,7 +62,7 @@ func TestPreferencesLive(t *testing.T) {
 		t.Fatal(e)
 	}
 	f.Close()
-	if err := tt.Click("完成"); err != nil {
+	if err := tt.Click("Done"); err != nil {
 		t.Fatal(err)
 	}
 	after, ok := tt.Find("hello.txt")
@@ -71,7 +71,7 @@ func TestPreferencesLive(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyComma)
-	if err := tt.Click("恢复默认字体"); err != nil {
+	if err := tt.Click("Reset All Fonts"); err != nil {
 		t.Fatalf("%v modal=%v texts=%q", err, a.modal, tt.Texts())
 	}
 	if a.fonts != defaultFonts() {
@@ -126,11 +126,11 @@ func TestSettingsKeepsRegionsIndependent(t *testing.T) {
 		tt.Frame()
 	}
 	editSize("files size", "21")
-	if err := tt.Click("字体区域：终端"); err != nil {
+	if err := tt.Click("Font area: Terminal"); err != nil {
 		t.Fatal(err)
 	}
 	editSize("terminal size", "17")
-	if err := tt.Click("字体区域：文件列表"); err != nil {
+	if err := tt.Click("Font area: File List"); err != nil {
 		t.Fatal(err)
 	}
 	editSize("files size", "23")
@@ -150,11 +150,11 @@ func TestSettingsLayoutAtMinimumHeight(t *testing.T) {
 	a.fonts.Preferences.Size = 48
 	tt := ui.NewTester(a.view, 960, 420)
 	tt.Key(ui.Cmd, ui.KeyComma)
-	panel, ok := tt.Find("设置面板")
+	panel, ok := tt.Find("Settings panel")
 	if !ok || panel.X < 0 || panel.Y < 0 || panel.X+panel.W > 960 || panel.Y+panel.H > 420 {
 		t.Fatalf("settings overflowed the window: %v", panel)
 	}
-	for _, label := range []string{"恢复默认字体", "完成"} {
+	for _, label := range []string{"Reset All Fonts", "Done"} {
 		r, ok := tt.Find(label)
 		if !ok || r.Y < panel.Y || r.Y+r.H > panel.Y+panel.H {
 			t.Fatalf("footer %q is not visible: %v", label, r)
@@ -162,20 +162,20 @@ func TestSettingsLayoutAtMinimumHeight(t *testing.T) {
 	}
 	// The right side scrolls independently; the footer stays put even when
 	// the user's settings font is large enough to push the editor below it.
-	footer, _ := tt.Find("完成")
+	footer, _ := tt.Find("Done")
 	tt.Scroll(panel.X+panel.W-40, panel.Y+200, 0, 2000)
 	tt.Frame()
 	field, ok := tt.Find("files size")
 	if !ok || field.Y < panel.Y+60 || field.Y+field.H > footer.Y {
 		t.Fatalf("font editor cannot be reached by scrolling: %v footer=%v", field, footer)
 	}
-	if err := tt.Click("恢复默认字体"); err != nil {
+	if err := tt.Click("Reset All Fonts"); err != nil {
 		t.Fatal(err)
 	}
 	if a.fonts != defaultFonts() {
 		t.Fatal("reset did not recover from a large settings font")
 	}
-	if err := tt.Click("完成"); err != nil {
+	if err := tt.Click("Done"); err != nil {
 		t.Fatal(err)
 	}
 	if a.modal != nil || a.focus != a.active+1 {
@@ -224,7 +224,7 @@ func TestTerminalFontPreferencesLive(t *testing.T) {
 	a.panes[1].tabs[0].terminal.session = hidden
 	tt := ui.NewTester(a.view, 1100, 760)
 	tt.Key(ui.Cmd, ui.KeyComma)
-	if err := tt.Click("字体区域：终端"); err != nil {
+	if err := tt.Click("Font area: Terminal"); err != nil {
 		t.Fatal(err)
 	}
 	if err := tt.Click("terminal size"); err != nil {
@@ -253,7 +253,7 @@ func TestTerminalFontPreferencesLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.Close()
-	if err := tt.Click("恢复默认字体"); err != nil {
+	if err := tt.Click("Reset All Fonts"); err != nil {
 		t.Fatal(err)
 	}
 	if visible.font != defaultFonts().Terminal || hidden.font != defaultFonts().Terminal {

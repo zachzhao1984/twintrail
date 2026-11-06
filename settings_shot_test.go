@@ -37,11 +37,11 @@ func TestCaptureSettings(t *testing.T) {
 		a.fonts.Files.Size = 20
 		tt := ui.NewTester(a.view, shot.w, shot.h)
 		tt.Key(ui.Cmd, ui.KeyComma)
-		if err := tt.Click("字体区域：" + areaTitle(shot.area)); err != nil {
+		if err := tt.Click("Font area: " + areaTitle(shot.area)); err != nil {
 			t.Fatal(err)
 		}
 		tt.Advance(300 * time.Millisecond)
-		panel, ok := tt.Find("设置面板")
+		panel, ok := tt.Find("Settings panel")
 		if !ok {
 			t.Fatal("no settings panel")
 		}

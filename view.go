@@ -357,7 +357,7 @@ func (a *app) dialogView(c *ui.Context) {
 		}
 		if d.kind == "Preference" {
 			w, h := c.Size()
-			panel.Width(min(float32(760), w-48)).Height(min(float32(560), h-32)).Background(a.colors().window).Border(1, a.colors().border).Radius(12).Padding(0).Label("设置面板")
+			panel.Width(min(float32(760), w-48)).Height(min(float32(560), h-32)).Background(a.colors().window).Border(1, a.colors().border).Radius(12).Padding(0).Label("Settings panel")
 			a.preferencesView(c)
 			return
 		}
