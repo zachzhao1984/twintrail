@@ -1,0 +1,160 @@
+.other-platforms {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  width: fit-content;
+  padding: 14px 0 4px;
+  color: var(--mint);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.terminal-section {
+  border-top: 1px solid var(--line);
+  padding: 90px 0;
+}
+.terminal-figure {
+  margin: 0;
+}
+.terminal-figure a {
+  display: block;
+}
+.terminal-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #4a555b;
+  border-radius: 8px;
+}
+.terminal-figure figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.terminal-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.terminal-shortcut kbd {
+  color: var(--mint);
+  border: 1px solid #55616a;
+  border-radius: 5px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  font:
+    14px/1.6 ui-monospace,
+    monospace;
+}
+.terminal-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 44px;
+  margin-top: 38px;
+}
+.terminal-features h3 {
+  font-size: 17px;
+  font-weight: 550;
+  margin: 0 0 10px;
+}
+.terminal-features p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.9;
+  margin: 0;
+}
+
+.closing .download-release {
+  margin: 30px 0 18px;
+}
+.platform-downloads {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 44px;
+}
+.platform-download {
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+  min-width: 0;
+}
+.platform-download h3 {
+  font-size: 25px;
+  font-weight: 500;
+  margin: 0 0 9px;
+}
+.platform-download .primary {
+  margin-top: 18px;
+}
+.package-note {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 10px;
+}
+.package-links {
+  display: flex;
+  gap: 9px;
+  margin-top: 10px;
+}
+.package-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 18px;
+  border: 1px solid #59665e;
+  border-radius: 5px;
+  color: var(--mint);
+  font-size: 14px;
+}
+.package-link:hover {
+  background: #24322b;
+  border-color: var(--mint);
+}
+.closing .package-format {
+  margin-top: 20px;
+}
+.closing .download-footnote {
+  font-size: 12px;
+  margin-top: 29px;
+}
+.download-footnote a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-left: 12px;
+  color: var(--mint);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media (max-width: 760px) {
+  .terminal-section {
+    padding: 65px 0;
+  }
+  .terminal-figure figcaption {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .terminal-features,
+  .platform-downloads {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .terminal-features p {
+    font-size: 16px;
+  }
+  .platform-download .primary {
+    width: 100%;
+  }
+  .download-footnote a {
+    margin-left: 0;
+  }
+}

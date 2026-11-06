@@ -563,10 +563,6 @@ h2 {
 .closing {
   border-top: 1px solid #4a555b;
   border-bottom: 1px solid #4a555b;
-  display: flex;
-  justify-content: space-between;
-  gap: 48px;
-  align-items: center;
   padding: 51px 0;
 }
 .closing-title {
@@ -587,14 +583,6 @@ h2 {
   color: var(--muted);
   margin: 0;
   line-height: 1.7;
-}
-.closing-action {
-  text-align: right;
-  flex-shrink: 0;
-}
-.closing-action .release {
-  font-size: 12px;
-  margin-top: 10px;
 }
 footer {
   display: flex;
@@ -874,13 +862,6 @@ footer a {
   }
   .closing p {
     font-size: 16px;
-  }
-  .closing-action {
-    text-align: left;
-    margin: 25px 0 0;
-  }
-  .closing-action .primary {
-    width: 100%;
   }
   footer {
     align-items: flex-start;

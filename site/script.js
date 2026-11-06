@@ -10,6 +10,32 @@ const copy = {
     heroLead:
       "项目在左，交付在右。熟悉的快捷键、独立的标签页，让每一步操作都顺着你的思路。",
     download: "下载 macOS 版",
+    otherPlatforms: "Windows 与 Linux 下载",
+    terminalTitle: "文件与命令行，<br>在同一个工作现场。",
+    terminalLead:
+      "浏览文件，运行命令，再回到文件。集成 Terminal 就在双栏下方，少一次窗口切换，多一点连贯。",
+    terminalCaption: "macOS 开发预览，终端内容为示例；点击查看大图",
+    terminalShortcut: "显示 / 隐藏 Terminal",
+    terminalFollowTitle: "跟随当前目录",
+    terminalFollowBody:
+      "在文件面板中进入文件夹，终端工作目录随之同步，接着执行下一条命令。",
+    terminalTabsTitle: "每个标签页，各自继续",
+    terminalTabsBody:
+      "标签页保留独立终端会话。收起面板后会话仍在，回到标签页就能继续。",
+    terminalSizeTitle: "留出刚好的空间",
+    terminalSizeBody:
+      "拖动终端上边缘调整高度。明暗配色随应用外观切换，让命令行融入工作区。",
+    terminalImage:
+      "Twintrail 双栏文件列表下方展开集成 Terminal，显示示例项目的 git status 与 ls 命令",
+    terminalFullImage: "查看集成 Terminal 完整截图",
+    downloadRelease: "公开版本 v1.2.0 · 按系统与芯片选择下载",
+    macChip: "Apple Silicon 与 Intel 通用",
+    windowsPackage: "安装程序 .exe",
+    portablePackage: "便携版 .zip",
+    debianPackage: "Debian / Ubuntu .deb",
+    archivePackage: "压缩包 .tar.gz",
+    chipHelp: "x64 适用于 Intel / AMD 64 位芯片；ARM64 适用于 ARM 芯片。",
+    checksums: "SHA256 校验文件",
     release: "公开版本 v1.2.0",
     releaseNotes: "发行说明",
     keysCaption: "从熟悉的按键开始。",
@@ -54,6 +80,33 @@ const copy = {
     heroLead:
       "Projects on the left. Deliverables on the right. Familiar shortcuts and independent tabs keep every next step close at hand.",
     download: "Download for macOS",
+    otherPlatforms: "Windows & Linux downloads",
+    terminalTitle: "Your files and shell.<br>One working space.",
+    terminalLead:
+      "Browse a folder, run a command, return to your files. The embedded terminal sits beneath both panes, keeping the next step in the same window.",
+    terminalCaption:
+      "macOS development preview with example output; click to enlarge",
+    terminalShortcut: "Show / hide Terminal",
+    terminalFollowTitle: "Follow the folder",
+    terminalFollowBody:
+      "Navigate to a folder in the file pane and the terminal’s working directory follows, ready for your next command.",
+    terminalTabsTitle: "A session for every tab",
+    terminalTabsBody:
+      "Each tab keeps its own terminal session. Hiding the panel keeps the session running, ready when you return.",
+    terminalSizeTitle: "Make room as you go",
+    terminalSizeBody:
+      "Drag the top edge to resize the terminal. Its light and dark colors follow the app’s appearance, keeping your workspace together.",
+    terminalImage:
+      "Twintrail with its embedded terminal below the file panes, showing example git status and ls commands",
+    terminalFullImage: "View the full embedded Terminal screenshot",
+    downloadRelease: "Public release v1.2.0 · Choose your system and chip",
+    macChip: "Universal for Apple Silicon & Intel",
+    windowsPackage: "Installer .exe",
+    portablePackage: "Portable .zip",
+    debianPackage: "Debian / Ubuntu .deb",
+    archivePackage: "Archive .tar.gz",
+    chipHelp: "x64 is for 64-bit Intel / AMD chips; ARM64 is for ARM chips.",
+    checksums: "SHA256 checksums",
     release: "Public release v1.2.0",
     releaseNotes: "Release notes",
     keysCaption: "Start with the keys you know.",

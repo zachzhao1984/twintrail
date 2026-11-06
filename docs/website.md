@@ -16,9 +16,12 @@ a language explicitly; the language buttons remember the choice in local storage
 The default language is Chinese. No analytics or third-party scripts are loaded.
 
 Application screenshots use example project names and are labeled development
-previews. Download buttons link to the verified public v1.2.0 release. When the
+previews. The Terminal screenshot uses the real app and terminal renderer with
+example output, and is labeled accordingly. Download buttons link to the verified
+public v1.2.0 release. When the
 app version changes, update both language dictionaries and release/download URLs
-in `site/index.html` and `site/script.js` together.
+in `site/index.html` and `site/script.js` together. Keep Windows and Linux x64
+and ARM64 links matched to the release assets, including installers and archives.
 
 Checks before publishing:
 
