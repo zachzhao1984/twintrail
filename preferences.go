@@ -69,10 +69,10 @@ func fontHeight(f fontSetting, minimum float32) float32 {
 }
 func (a *app) openPreferences() {
 	a.focus = 0
-	a.modal = &dialog{kind: "Preference", open: true}
+	a.modal = &dialog{kind: "Preference", open: true, index: 3}
 }
 func (a *app) preferenceMenu() *mygo.MenuItem {
-	return &mygo.MenuItem{ID: "preferences", Label: "Preference…", Accelerator: "Cmd+,", Click: func(item *mygo.MenuItem, w *mygo.Window) {
+	return &mygo.MenuItem{ID: "preferences", Label: "Settings…", Accelerator: "Cmd+,", Click: func(item *mygo.MenuItem, w *mygo.Window) {
 		a.openPreferences()
 		if w != nil {
 			w.Invalidate()
@@ -106,36 +106,6 @@ func (a *app) persistSettings(background bool) {
 	} else {
 		work()
 	}
-}
-func (a *app) preferencesView(c *ui.Context) {
-	_, h := c.Size()
-	a.fonts.Preferences.apply(ui.Column(c).Gap(12)).Children(func() {
-		ui.Text(c, "字体设置").FontSize(float32(a.fonts.Preferences.Size) + 4).Bold()
-		ui.Text(c, "修改立即生效并自动保存。Default 使用系统字体，Terminal 使用系统等宽字体。").TextColor(c.Theme().TextMuted)
-		ui.Scroll(c).MaxHeight(max(160, h-180)).Children(func() {
-			a.fonts.Preferences.apply(ui.Column(c).Gap(8)).Children(func() {
-				names := []string{"actionBar", "breadcrumbs", "virtualTabs", "files", "statusBar", "tableHeader", "tabs", "preferences", "terminal"}
-				for i, setting := range a.fonts.values() {
-					name := names[i]
-					c.Key(name)
-					ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, name).Width(132).SingleLine()
-						ui.TextInput(c, &setting.Name).Width(224).Label(name + " font").OnChange(func() {
-							if strings.TrimSpace(setting.Name) != "" {
-								a.fontsChanged()
-							}
-						})
-						ui.NumberInput(c, &setting.Size, 8, 48, 1).Width(112).Label(name + " size").OnChange(func() { a.fontsChanged() })
-						ui.Text(c, "pt").FontSize(11).TextColor(c.Theme().TextMuted)
-					})
-				}
-			})
-		})
-		ui.Row(c).Gap(10).Children(func() {
-			ui.Button(c, "恢复默认字体").OnClick(func() { a.fonts = defaultFonts(); a.fontsChanged() })
-			ui.PrimaryButton(c, "完成").OnClick(func() { a.modal = nil; a.focus = a.active + 1 })
-		})
-	})
 }
 
 // Apply to existing sessions, including terminals hidden in other tabs.

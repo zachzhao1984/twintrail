@@ -62,21 +62,22 @@ type pane struct {
 	current int
 }
 type dialog struct {
-	jumpList     ui.ListState
-	jumpQuery    string
-	jumpResults  []string
-	jumpCancel   func()
-	jumpTab      *tab
-	jumpPane     int
-	kind, value  string
-	open         bool
-	sources      []string
-	target       string
-	index        int
-	input        ui.Handle
-	applications []openWithApplication
-	loading      bool
-	err          string
+	preferencesScroll ui.ScrollState
+	jumpList          ui.ListState
+	jumpQuery         string
+	jumpResults       []string
+	jumpCancel        func()
+	jumpTab           *tab
+	jumpPane          int
+	kind, value       string
+	open              bool
+	sources           []string
+	target            string
+	index             int
+	input             ui.Handle
+	applications      []openWithApplication
+	loading           bool
+	err               string
 	// trashItem moves one source into the system's Trash, which the app sets
 	// from its trashItem so that a test without the running app can stand in.
 	trashItem func(string) error

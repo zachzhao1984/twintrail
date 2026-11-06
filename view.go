@@ -346,9 +346,6 @@ func (a *app) dialogView(c *ui.Context) {
 		if d.kind == "Jump" {
 			panelWidth = 680
 		}
-		if d.kind == "Preference" {
-			panelWidth = 660
-		}
 		if d.kind == "Open With" {
 			panelWidth = 360
 		}
@@ -358,14 +355,16 @@ func (a *app) dialogView(c *ui.Context) {
 			a.jumpView(c, d)
 			return
 		}
+		if d.kind == "Preference" {
+			w, h := c.Size()
+			panel.Width(min(float32(760), w-48)).Height(min(float32(560), h-32)).Background(a.colors().window).Border(1, a.colors().border).Radius(12).Padding(0).Label("设置面板")
+			a.preferencesView(c)
+			return
+		}
 		panel.Width(panelWidth).Background(c.Theme().Background).Border(1, c.Theme().Border).Radius(7).Padding(16)
 		ui.Column(c).Gap(10).Children(func() {
 			if d.kind == "Open With" {
 				a.openWithView(c, d)
-				return
-			}
-			if d.kind == "Preference" {
-				a.preferencesView(c)
 				return
 			}
 			title, action, label := d.kind, d.kind, d.kind+" destination"
