@@ -18,7 +18,7 @@ The default language is Chinese. No analytics or third-party scripts are loaded.
 Application screenshots use example project names and are labeled development
 previews. The Terminal screenshot uses the real app and terminal renderer with
 example output, and is labeled accordingly. Download buttons link to the verified
-public v1.2.0 release. When the
+public v1.3.0 release. When the
 app version changes, update both language dictionaries and release/download URLs
 in `site/index.html` and `site/script.js` together. Keep Windows and Linux x64
 and ARM64 links matched to the release assets, including installers and archives.
