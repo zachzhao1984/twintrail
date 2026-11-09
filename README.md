@@ -32,6 +32,21 @@ and that is remembered too. The terminal at the bottom of a pane takes the same
 palette, its blue and yellow being the app's accent and mark, and the line
 above it drags to resize it.
 
+## Icons
+
+The app's own icons — the sidebar's home, folders, favourites, cloud and
+disks, and the panes' list and columns — are drawings from [Kubai
+Icons](https://icons.kubai.design/), MIT licensed, kept at `icons/` with the
+licence beside them. Each was taken from the library's still pose and reduced
+to what the app can tint: its outline, the faces it cuts, and its small detail
+strokes, with the fills, gradients and shadow left out, so an icon takes the
+colour of the row it sits in, in either appearance. Its four layout glyphs are
+the same drawings reduced to their frame and centre lines, which is all that
+survives at the 14 to 16 points a toolbar keeps for them. The disclosure
+arrow, the plus above the workspaces and the magnifier of the search box stay
+drawn here: a control that turns a quarter, a 12-point plus and a magnifier
+smaller than the library's page-and-lens have no counterpart there.
+
 ## Sidebar and workspaces
 
 A Finder-style sidebar sits to the left of the panes, in the manner of Tilde:

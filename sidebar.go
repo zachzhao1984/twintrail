@@ -31,19 +31,21 @@ const (
 )
 
 var (
-	iconWorkspace    = sidebarIcon(`<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>`)
+	iconWorkspace    = libraryIcon("layout-dashboard")
 	iconNewWorkspace = sidebarIcon(`<path d="M12 5v14M5 12h14"/>`)
-	iconHome         = sidebarIcon(`<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>`)
-	iconFolder       = sidebarIcon(`<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>`)
+	iconHome         = libraryIcon("home")
+	iconFolder       = libraryIcon("folder")
 	// iconFavorite is a folder with a star in it, which tells the favorites from
 	// the recents' plain folders at a glance.
-	iconFavorite = sidebarIcon(`<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path fill="currentColor" stroke="none" d="M12 8.1 13.03 10.98 16.09 11.07 13.66 12.94 14.53 15.88 12 14.15 9.47 15.88 10.34 12.94 7.91 11.07 10.97 10.98Z"/>`)
-	iconCloud    = sidebarIcon(`<path d="M17.5 19a4.5 4.5 0 0 0 .5-9 6 6 0 0 0-11.6 1.6A3.5 3.5 0 0 0 6.5 19z"/>`)
-	iconDrive    = sidebarIcon(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15h18"/><path d="M7 18h.01M11 18h.01"/>`)
-	iconChevron  = sidebarIcon(`<path d="m9 6 6 6-6 6"/>`)
-	iconSidebar  = sidebarIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16"/><path d="M5.5 8.5h1.75M5.5 12h1.75M5.5 15.5h1.75"/>`)
-	iconRows     = sidebarIcon(`<path d="M4 6.5h16M4 12h16M4 17.5h16"/>`)
-	iconColumns  = sidebarIcon(`<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9.5 4v16M16.5 4v16"/>`)
+	iconFavorite = libraryIcon("folder-star")
+	iconCloud    = libraryIcon("cloud")
+	iconDrive    = libraryIcon("hard-drive")
+	// iconChevron stays a drawn chevron: it turns a quarter as a section folds,
+	// which a library icon with a badge or a body of its own cannot do.
+	iconChevron = sidebarIcon(`<path d="m9 6 6 6-6 6"/>`)
+	iconSidebar = libraryIcon("sidebar")
+	iconRows    = libraryIcon("rows")
+	iconColumns = libraryIcon("columns")
 )
 
 // sidebarIcon draws an icon of the sidebar: the artwork is drawn in a 24 DIP
@@ -84,7 +86,7 @@ func (a *app) sidebarToggle(c *ui.Context, tooltip string) {
 		button.Background(theme.SurfaceHover)
 	}
 	button.Children(func() {
-		ui.Icon(c, iconSidebar).Size(15, 15).TextColor(theme.TextMuted)
+		ui.Icon(c, iconSidebar).Size(16, 16).TextColor(theme.TextMuted)
 	}).OnClick(a.toggleSidebar)
 }
 
