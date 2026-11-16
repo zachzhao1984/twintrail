@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3.1
+
+- The icons the window draws — the sidebar's workspaces, home, folders,
+  favorites, cloud and drives, its fold, and the two view buttons — come from
+  Kubai Icons, which are MIT-licensed, redrawn as single-colour outlines so
+  they take the text colour and stay legible at 14 pt. The chevron, the
+  new-workspace plus and the jump box's magnifier stay hand-drawn, where the
+  library's nearest shapes read wrong at 12–14 pt: a paper-and-lens search, a
+  plus too heavy for the control. The file list keeps the system's own file and
+  folder icons, as Finder's does, and the README gains an Icons section naming
+  what comes from where.
+- Updated myGO to v0.9.1 from v0.7.4. The framework's test driver now checks
+  that a labeled control's centre really reaches that control, which the font
+  size fields, labeled on the row holding the field and its − and + buttons,
+  meet by being clicked on the field; the SQLite library setting v0.9.0 removed
+  was never read here.
+
 ## 1.3.0
 
 - ⌘K, and the Jump to… box above the sidebar's workspaces, search every folder
