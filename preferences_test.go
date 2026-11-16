@@ -12,6 +12,21 @@ import (
 	"time"
 )
 
+// clickField clicks the editable part of a labeled field. MyGo 0.9's Tester
+// checks that a label's centre reaches the control the label names, and a
+// NumberInput labels the row holding its field and its − and + buttons, whose
+// centre lands on the field inside rather than on the row; the field is
+// clicked at its own part, left of the buttons.
+func clickField(t *testing.T, tt *ui.Tester, label string) {
+	t.Helper()
+	r, ok := tt.Find(label)
+	if !ok {
+		t.Fatalf("no field labeled %q", label)
+	}
+	tt.ClickAt(r.X+r.W*0.25, r.Y+r.H/2)
+	tt.Frame()
+}
+
 func TestPreferencesLive(t *testing.T) {
 	a := fixture(t)
 	saved := make(chan session, 32)
@@ -25,9 +40,7 @@ func TestPreferencesLive(t *testing.T) {
 	if a.modal == nil || a.modal.kind != "Preference" {
 		t.Fatal("preference shortcut failed")
 	}
-	if err := tt.Click("files size"); err != nil {
-		t.Fatal(err)
-	}
+	clickField(t, tt, "files size")
 	tt.Key(ui.Cmd, ui.KeyA)
 	tt.Type("22")
 	tt.Frame()
@@ -118,9 +131,7 @@ func TestSettingsKeepsRegionsIndependent(t *testing.T) {
 	tt.Key(ui.Cmd, ui.KeyComma)
 	editSize := func(label, value string) {
 		t.Helper()
-		if err := tt.Click(label); err != nil {
-			t.Fatal(err)
-		}
+		clickField(t, tt, label)
 		tt.Key(ui.Cmd, ui.KeyA)
 		tt.Type(value)
 		tt.Frame()
@@ -227,9 +238,7 @@ func TestTerminalFontPreferencesLive(t *testing.T) {
 	if err := tt.Click("Font area: Terminal"); err != nil {
 		t.Fatal(err)
 	}
-	if err := tt.Click("terminal size"); err != nil {
-		t.Fatal(err)
-	}
+	clickField(t, tt, "terminal size")
 	tt.Key(ui.Cmd, ui.KeyA)
 	tt.Type("18")
 	tt.Frame()
