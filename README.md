@@ -34,18 +34,24 @@ above it drags to resize it.
 
 ## Icons
 
-The app's own icons — the sidebar's home, folders, favourites, cloud and
-disks, and the panes' list and columns — are drawings from [Kubai
-Icons](https://icons.kubai.design/), MIT licensed, kept at `icons/` with the
-licence beside them. Each was taken from the library's still pose and reduced
-to what the app can tint: its outline, the faces it cuts, and its small detail
-strokes, with the fills, gradients and shadow left out, so an icon takes the
-colour of the row it sits in, in either appearance. Its four layout glyphs are
-the same drawings reduced to their frame and centre lines, which is all that
-survives at the 14 to 16 points a toolbar keeps for them. The disclosure
-arrow, the plus above the workspaces and the magnifier of the search box stay
-drawn here: a control that turns a quarter, a 12-point plus and a magnifier
-smaller than the library's page-and-lens have no counterpart there.
+The app's own icons — the sidebar's workspaces, home, favourites, folders,
+cloud and disks, its own button, and the panes' list and columns — are drawn
+here, on one 16-point grid, and kept at `icons/`: a 1.5-point stroke with round
+caps and joins, no fill but a dot or two, and about 12 points of ink in the
+box, so a row of them reads as one set beside the file list's system icons and
+still reads at the 12 to 16 points the window gives them.
+
+The workspace is the window the app opens, two panes under one frame; the
+sidebar's own button is that frame with a narrow band, so the two say what they
+do at a glance. Favourites are a star, since they are pins rather than folders,
+and the folders below them stay folders. A mounted volume is a drive with its
+slot, iCloud a cloud, Home a house. The disclosure arrow and the plus above the
+workspaces are drawn in the same box, the arrow turning a quarter as a section
+folds.
+
+An icon takes its colour from the row, the strip or the button it sits in: the
+sidebar's items carry the accent, as a native sidebar's do, and the buttons
+along the panes and the strip stay the muted text colour.
 
 ## Sidebar and workspaces
 

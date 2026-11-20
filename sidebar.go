@@ -31,28 +31,24 @@ const (
 )
 
 var (
-	iconWorkspace    = libraryIcon("layout-dashboard")
-	iconNewWorkspace = sidebarIcon(`<path d="M12 5v14M5 12h14"/>`)
-	iconHome         = libraryIcon("home")
-	iconFolder       = libraryIcon("folder")
-	// iconFavorite is a folder with a star in it, which tells the favorites from
-	// the recents' plain folders at a glance.
-	iconFavorite = libraryIcon("folder-star")
-	iconCloud    = libraryIcon("cloud")
-	iconDrive    = libraryIcon("hard-drive")
-	// iconChevron stays a drawn chevron: it turns a quarter as a section folds,
-	// which a library icon with a badge or a body of its own cannot do.
-	iconChevron = sidebarIcon(`<path d="m9 6 6 6-6 6"/>`)
-	iconSidebar = libraryIcon("sidebar")
-	iconRows    = libraryIcon("rows")
-	iconColumns = libraryIcon("columns")
+	iconWorkspace    = icon("workspace")
+	iconNewWorkspace = icon("new-workspace")
+	iconHome         = icon("home")
+	iconFolder       = icon("folder")
+	iconFavorite     = icon("favorite")
+	iconCloud        = icon("cloud")
+	iconDrive        = icon("drive")
+	iconChevron      = sidebarIcon(`<path d="m6.2 3.6 4.4 4.4-4.4 4.4"/>`)
+	iconSidebar      = icon("sidebar")
+	iconRows         = icon("rows")
+	iconColumns      = icon("columns")
 )
 
-// sidebarIcon draws an icon of the sidebar: the artwork is drawn in a 24 DIP
-// box, which the view box trims a little, so its shapes fill their box without
-// the weight of the file lists' icons beside them.
+// sidebarIcon draws an icon on the icons' grid, for the shapes that turn or
+// follow a control rather than name a thing: the chevron that quarters as a
+// section folds.
 func sidebarIcon(shapes string) *ui.SVG {
-	return ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">` + shapes + `</svg>`))
+	return ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">` + shapes + `</svg>`))
 }
 
 // sidebarItemFont is the font of the sidebar's items: the file lists' font, a
