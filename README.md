@@ -35,24 +35,14 @@ above it drags to resize it.
 ## Icons
 
 The app's own icons — the sidebar's workspaces, new-workspace plus, home,
-favourites, folders, cloud and disks, the fold arrow, its own button, and the
-panes' list and columns — are drawn here, on one 16-point grid, and kept at
-`icons/`. Each is a solid shape with its detail cut out: the two panes of a
-workspace, the plus in its tile, the door of the house, the inner star of a
-favourite, the sheet in a folder, the arrow under the cloud, the slot of a disk,
-the band beside a sidebar, the rows of a list, the columns of a pane. MyGo
-paints an icon as the alpha mask of its artwork, tinted by the row or button
-that carries it; a line drawn inside a shape would fill in, while a cut-out
-stays open in either appearance. The file list keeps the system's own file and
-folder icons, as Finder's does.
-
-They were redrawn from a round with [Kubai Icons](https://icons.kubai.design/):
-each was first an animated, layered object on that library's 31×29 canvas,
-checked at 24 and 28 points across every palette for size, centring, seams and
-a motion that settles. The layered colour cannot cross into an icon mask, so
-what reaches the app is the bolder silhouette and its cut-out; the animated
-versions and their checks stay in the local design notes at
-`design/kubai-sidebar/`.
+favourites, folders, cloud and disks, the fold arrow, its own button, the
+panes' list and columns, and the magnifier in the Jump to… box — come from
+[Tabler Icons](https://tabler.io/icons), MIT licensed, kept at `icons/` with
+the licence beside them. They are the library's outline drawings, unchanged;
+MyGo paints an icon as the alpha mask of its artwork, tinted by the row or
+button that carries it, so the strokes take the accent in a sidebar row and
+the muted text colour on a button, in either appearance. The file list keeps
+the system's own file and folder icons, as Finder's does.
 
 ## Sidebar and workspaces
 

@@ -159,10 +159,7 @@ func (a *app) jumpOpen(d *dialog, path string) {
 	a.focus = a.active + 1
 }
 
-// jumpSearchIcon stays a drawn magnifier: the library's search is a page
-// with a lens on it, which reads as a document at the 16 points the sidebar
-// keeps for it.
-var jumpSearchIcon = sidebarIcon(`<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>`)
+var jumpSearchIcon = icon("search")
 
 // The palette matches the reference's quiet, neutral command window.
 func (a *app) jumpColors() palette {
