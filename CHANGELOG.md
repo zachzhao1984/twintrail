@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.4.0
+
+- The sidebar's icons — its workspaces and the plus that makes one, the
+  chevron that folds a section, its own button along the title bar, the list
+  and columns buttons above the panes, the magnifier in the Jump to… box —
+  come from [Tabler Icons](https://tabler.io/icons), MIT licensed, with the
+  licence kept beside the drawings. A workspace carries a spark on its
+  desktop, a favourite a spark on its folder, and the three folders every Mac
+  has — Desktop, Documents and Downloads — get the library's own device,
+  document and folder-with-arrow drawings, so a familiar place is picked out
+  without reading its name. MyGo paints an icon as the alpha mask of its
+  artwork, tinted by the row or button that carries it; the viewBox of each
+  drawing is a little tighter than the library's, so the icons read a touch
+  larger at the size a sidebar gives them, without cropping the sparks.
+- The app's own icon fills its canvas now: what had been a feathered, partly
+  transparent edge is baked into the same deep blue, so macOS has no pale
+  plate to show through it in Light and the Dock icon looks as it does in
+  Dark.
+- Updated myGO to v0.10.0 from v0.9.1. Neither release changes the Go API.
+  Verification grew a test that renders whole windows through the headless
+  tester, so a change to layout, icons or appearance can be looked at without
+  putting a window on screen or taking the focus from what you are doing.
+
 ## 1.3.1
 
 - The icons the window draws — the sidebar's workspaces, home, folders,
