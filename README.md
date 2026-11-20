@@ -37,14 +37,15 @@ above it drags to resize it.
 The app's own icons — the sidebar's workspaces, new-workspace plus, home,
 favourites, folders, cloud and disks, the fold arrow, its own button, the
 panes' list and columns, the magnifier in the Jump to… box, and the well-known
-folders — `folder-down` for Downloads, `file-text` for Documents and
-`device-desktop` for Desktop — come from
-[Tabler Icons](https://tabler.io/icons), MIT licensed, kept at `icons/` with
-the licence beside them. They are the library's outline drawings, unchanged;
-MyGo paints an icon as the alpha mask of its artwork, tinted by the row or
-button that carries it, so the strokes take the accent in a sidebar row and
-the muted text colour on a button, in either appearance. The file list keeps
-the system's own file and folder icons, as Finder's does.
+folders — come from [Tabler Icons](https://tabler.io/icons), MIT licensed,
+kept at `icons/` with the licence beside them. They are the library's outline
+drawings, unchanged; the workspace uses `device-desktop-spark` and a
+favourite `folder-spark`, the well-known folders use `folder-down` for
+Downloads, `file-text` for Documents and `device-desktop` for Desktop. MyGo
+paints an icon as the alpha mask of its artwork, tinted by the row or button
+that carries it, so the strokes take the accent in a sidebar row and the
+muted text colour on a button, in either appearance. The file list keeps the
+system's own file and folder icons, as Finder's does.
 
 ## Sidebar and workspaces
 
