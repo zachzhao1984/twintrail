@@ -34,24 +34,25 @@ above it drags to resize it.
 
 ## Icons
 
-The app's own icons — the sidebar's workspaces, home, favourites, folders,
-cloud and disks, its own button, and the panes' list and columns — are drawn
-here, on one 16-point grid, and kept at `icons/`: a 1.5-point stroke with round
-caps and joins, no fill but a dot or two, and about 12 points of ink in the
-box, so a row of them reads as one set beside the file list's system icons and
-still reads at the 12 to 16 points the window gives them.
+The app's own icons — the sidebar's workspaces, new-workspace plus, home,
+favourites, folders, cloud and disks, the fold arrow, its own button, and the
+panes' list and columns — are drawn here, on one 16-point grid, and kept at
+`icons/`. Each is a solid shape with its detail cut out: the two panes of a
+workspace, the plus in its tile, the door of the house, the inner star of a
+favourite, the sheet in a folder, the arrow under the cloud, the slot of a disk,
+the band beside a sidebar, the rows of a list, the columns of a pane. MyGo
+paints an icon as the alpha mask of its artwork, tinted by the row or button
+that carries it; a line drawn inside a shape would fill in, while a cut-out
+stays open in either appearance. The file list keeps the system's own file and
+folder icons, as Finder's does.
 
-The workspace is the window the app opens, two panes under one frame; the
-sidebar's own button is that frame with a narrow band, so the two say what they
-do at a glance. Favourites are a star, since they are pins rather than folders,
-and the folders below them stay folders. A mounted volume is a drive with its
-slot, iCloud a cloud, Home a house. The disclosure arrow and the plus above the
-workspaces are drawn in the same box, the arrow turning a quarter as a section
-folds.
-
-An icon takes its colour from the row, the strip or the button it sits in: the
-sidebar's items carry the accent, as a native sidebar's do, and the buttons
-along the panes and the strip stay the muted text colour.
+They were redrawn from a round with [Kubai Icons](https://icons.kubai.design/):
+each was first an animated, layered object on that library's 31×29 canvas,
+checked at 24 and 28 points across every palette for size, centring, seams and
+a motion that settles. The layered colour cannot cross into an icon mask, so
+what reaches the app is the bolder silhouette and its cut-out; the animated
+versions and their checks stay in the local design notes at
+`design/kubai-sidebar/`.
 
 ## Sidebar and workspaces
 

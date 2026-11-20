@@ -38,17 +38,17 @@ var (
 	iconFavorite     = icon("favorite")
 	iconCloud        = icon("cloud")
 	iconDrive        = icon("drive")
-	iconChevron      = sidebarIcon(`<path d="m6.2 3.6 4.4 4.4-4.4 4.4"/>`)
+	iconChevron      = sidebarIcon(`<path d="M6.2 2.9 11.4 8 6.2 13.1v-3L8.7 8 6.2 5.9Z"/>`)
 	iconSidebar      = icon("sidebar")
 	iconRows         = icon("rows")
 	iconColumns      = icon("columns")
 )
 
-// sidebarIcon draws an icon on the icons' grid, for the shapes that turn or
-// follow a control rather than name a thing: the chevron that quarters as a
-// section folds.
+// sidebarIcon draws on the icons' grid, with the cut-outs their shapes use,
+// for the one shape that turns rather than names a thing: the chevron that
+// quarters as a section folds.
 func sidebarIcon(shapes string) *ui.SVG {
-	return ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">` + shapes + `</svg>`))
+	return ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" fill-rule="evenodd">` + shapes + `</svg>`))
 }
 
 // sidebarItemFont is the font of the sidebar's items: the file lists' font, a
