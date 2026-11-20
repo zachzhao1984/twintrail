@@ -38,10 +38,15 @@ var (
 	iconFavorite     = icon("favorite")
 	iconCloud        = icon("cloud")
 	iconDrive        = icon("drive")
-	iconChevron      = icon("chevron")
-	iconSidebar      = icon("sidebar")
-	iconRows         = icon("rows")
-	iconColumns      = icon("columns")
+	// The three folders every Mac has get the library's own drawings, so a
+	// familiar place is picked out without reading its name.
+	iconDownloads = icon("downloads")
+	iconDocuments = icon("documents")
+	iconDesktop   = icon("desktop")
+	iconChevron   = icon("chevron")
+	iconSidebar   = icon("sidebar")
+	iconRows      = icon("rows")
+	iconColumns   = icon("columns")
 )
 
 // sidebarItemFont is the font of the sidebar's items: the file lists' font, a
@@ -292,6 +297,9 @@ func favoriteIcon(item savedLocation) *ui.SVG {
 	if item.Name == "Home" {
 		return iconHome
 	}
+	if icon := folderIcon(item.Name); icon != nil {
+		return icon
+	}
 	return iconFavorite
 }
 
@@ -305,8 +313,25 @@ func locationIcon(item savedLocation) *ui.SVG {
 	case item.Path == home:
 		return iconHome
 	default:
+		if icon := folderIcon(item.Name); icon != nil {
+			return icon
+		}
 		return iconFolder
 	}
+}
+
+// folderIcon names the three well-known folders, wherever they appear in the
+// sidebar; the rest keep the ordinary folder or the star of a favourite.
+func folderIcon(name string) *ui.SVG {
+	switch name {
+	case "Downloads":
+		return iconDownloads
+	case "Documents":
+		return iconDocuments
+	case "Desktop":
+		return iconDesktop
+	}
+	return nil
 }
 
 func (a *app) chooseSidebarItem(id string) {

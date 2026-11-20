@@ -36,7 +36,9 @@ above it drags to resize it.
 
 The app's own icons — the sidebar's workspaces, new-workspace plus, home,
 favourites, folders, cloud and disks, the fold arrow, its own button, the
-panes' list and columns, and the magnifier in the Jump to… box — come from
+panes' list and columns, the magnifier in the Jump to… box, and the well-known
+folders — `folder-down` for Downloads, `file-text` for Documents and
+`device-desktop` for Desktop — come from
 [Tabler Icons](https://tabler.io/icons), MIT licensed, kept at `icons/` with
 the licence beside them. They are the library's outline drawings, unchanged;
 MyGo paints an icon as the alpha mask of its artwork, tinted by the row or
